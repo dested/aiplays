@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "module": "system",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "removeComments": false,
+    "target": "es5",
+    "sourceMap": true,
+    "inlineSourceMap": true,
+  }
+}
