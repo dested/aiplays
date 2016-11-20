@@ -1,4 +1,4 @@
-///<reference path="../lib/monaco/monaco.d.ts"/>
+///<reference path="../libs/monaco/monaco.d.ts"/>
 ///<reference path="./typings/fetch.d.ts"/>
 ///<reference path="./typings/promise.d.ts"/>
 ///<reference path="./typings/typescript.d.ts"/>
