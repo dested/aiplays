@@ -6,6 +6,6 @@
     "removeComments": false,
     "target": "es5",
     "sourceMap": true,
-    "inlineSourceMap": true,
+    "inlineSourceMap": true
   }
 }

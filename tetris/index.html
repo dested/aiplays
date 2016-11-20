@@ -6,11 +6,35 @@
 
 </head>
 <body>
-<button onclick="runCode()">Run</button>
-<div id="container" style="width:800px;height:600px;border:1px solid grey"></div>
+<div style="width:40%;display:inline-block">
+    <button onclick="runCode()">Run</button>
+    <div id="container" style="width:800px;height:600px;border:1px solid grey"></div>
+</div>
+<div style="width:40%;display:inline-block">
+    <canvas id="board"></canvas>
+</div>
+<script src="libs/monaco/min/vs/loader.js"></script>
+<script src="libs/typescript.js"></script>
+<script src="libs/system.js"></script>
+<script>
 
-
-<script src="lib/monaco/min/vs/loader.js"></script>
-<script src="app/main.js"></script>
+    System.config({
+        packages: {
+            'app': { main: 'main.ts', defaultExtension: 'ts', meta: { '*': { format: 'esm' } } },
+        },
+        transpiler: 'typescript',
+        baseURL: '',
+        typescriptOptions: {
+            "module": "system",
+            "experimentalDecorators": true,
+            "emitDecoratorMetadata": true,
+            "removeComments": false,
+            "target": "es5",
+            "sourceMap": true,
+            "inlineSourceMap": true
+        }
+    });
+    System.import('app');
+</script>
 </body>
 </html>
