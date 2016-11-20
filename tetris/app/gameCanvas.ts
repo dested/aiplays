@@ -21,24 +21,40 @@ export class GameCanvas {
         this.reset();
 
         require(['libs/keyboard.js'], (keyboardJS) => {
+            var leftDown = false;
+            var rightDown = false;
+            var downDown = false;
+            var upDown = false;
+            var enterDown = false;
+
             keyboardJS.bind('left', (e) => {
+                if (leftDown)return;
+                leftDown = true;
                 this.moveLeft();
-            });
+            }, (e) => leftDown = false);
 
             keyboardJS.bind('right', (e) => {
+                if (rightDown)return;
+                rightDown = true;
                 this.moveRight();
-            });
+            }, (e) => rightDown = false);
 
             keyboardJS.bind('enter', (e) => {
+                if (downDown)return;
+                downDown = true;
                 this.newPiece(true);
-            });
+            }, (e) => downDown = false);
 
             keyboardJS.bind('down', (e) => {
+                if (upDown)return;
+                upDown = true;
                 this.moveDown();
-            });
+            }, (e) => upDown = false);
             keyboardJS.bind('up', (e) => {
+                if (enterDown)return;
+                enterDown = true;
                 this.rotate();
-            });
+            }, (e) => enterDown = false);
         });
 
 
@@ -304,10 +320,11 @@ export class GameCanvas {
                         this.context.fillRect((x + 1) * this.blockSize, (y + 1) * this.blockSize, this.blockSize, this.blockSize);
                     }
                     else {
-                        this.context.fillStyle = 'white';
+                        var colorPad = 5;
+                        this.context.fillStyle = this.colorLuminance(color, -.3);
                         this.context.fillRect((x + 1) * this.blockSize, (y + 1) * this.blockSize, this.blockSize, this.blockSize);
                         this.context.fillStyle = color;
-                        this.context.fillRect((x + 1) * this.blockSize + 2, (y + 1) * this.blockSize + 2, this.blockSize - 4, this.blockSize - 4);
+                        this.context.fillRect((x + 1) * this.blockSize + colorPad, (y + 1) * this.blockSize + colorPad, this.blockSize - colorPad * 2, this.blockSize - colorPad * 2);
 
                     }
                     if (color == null) {
@@ -324,6 +341,25 @@ export class GameCanvas {
         window.requestAnimationFrame(() => this.render());
     }
 
+    private colorLuminance(hex, lum) {
+
+        // validate hex string
+        hex = String(hex).replace(/[^0-9a-f]/gi, '');
+        if (hex.length < 6) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        lum = lum || 0;
+
+        // convert to decimal and change luminosity
+        var rgb = "#", c, i;
+        for (i = 0; i < 3; i++) {
+            c = parseInt(hex.substr(i * 2, 2), 16);
+            c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
+            rgb += ("00" + c).substr(c.length);
+        }
+
+        return rgb;
+    }
 }
 
 export class GameBoard {
@@ -362,7 +398,7 @@ export class GameSlot {
 export class GamePiece implements IGamePiece {
 
     static pieces: GamePiece[] = [
-        new GamePiece(new GameSlot('orange'), [
+        new GamePiece(new GameSlot('#FFD800'), [
             [
                 [!!0, !!0, !!1],
                 [!!1, !!1, !!1],
@@ -381,7 +417,7 @@ export class GamePiece implements IGamePiece {
                 [!!0, !!1, !!0],
             ]
         ]),
-        new GamePiece(new GameSlot('blue'), [
+        new GamePiece(new GameSlot('#0026FF'), [
             [
                 [!!1, !!0, !!0],
                 [!!1, !!1, !!1],
@@ -400,7 +436,7 @@ export class GamePiece implements IGamePiece {
                 [!!1, !!1, !!0],
             ]
         ]),
-        new GamePiece(new GameSlot('yellow'), [
+        new GamePiece(new GameSlot('#FFE97F'), [
             [
                 [!!0, !!1, !!1, !!0],
                 [!!0, !!1, !!1, !!0],
@@ -419,7 +455,7 @@ export class GamePiece implements IGamePiece {
                 [!!0, !!0, !!0, !!0]
             ]
         ]),
-        new GamePiece(new GameSlot('green'), [
+        new GamePiece(new GameSlot('#00FF21'), [
             [
                 [!!0, !!1, !!1],
                 [!!1, !!1, !!0],
@@ -438,7 +474,7 @@ export class GamePiece implements IGamePiece {
                 [!!0, !!1, !!0],
             ]
         ]),
-        new GamePiece(new GameSlot('red'), [
+        new GamePiece(new GameSlot('#FF0000'), [
             [
                 [!!1, !!1, !!0],
                 [!!0, !!1, !!1],
@@ -457,7 +493,7 @@ export class GamePiece implements IGamePiece {
                 [!!0, !!1, !!0],
             ]
         ]),
-        new GamePiece(new GameSlot('cyan'), [
+        new GamePiece(new GameSlot('#00FFFF'), [
             [
                 [!!0, !!0, !!0, !!0],
                 [!!1, !!1, !!1, !!1],
@@ -481,7 +517,7 @@ export class GamePiece implements IGamePiece {
             ]
         ])
         ,
-        new GamePiece(new GameSlot('purple'), [
+        new GamePiece(new GameSlot('#B200FF'), [
             [
                 [!!0, !!1, !!0],
                 [!!1, !!1, !!1],
