@@ -7,7 +7,7 @@ declare var require;
 declare var ts;
 
 export class CodeEditor {
-    constructor() {
+    constructor(private loadAiScript: (script: string)=>void) {
         let editor: IStandaloneCodeEditor;
         require.config({paths: {'vs': 'libs/monaco/min/vs'}});
         require(['vs/editor/editor.main'], async() => {
@@ -65,9 +65,8 @@ export class CodeEditor {
             });
             // Emit
             program.emit();
-            let exports = {TetrisAI: null};
-            (<any>window).eval(outputText);
-            new exports.TetrisAI()
+
+            loadAiScript(outputText);
         };
     }
 }

@@ -1,13 +1,7 @@
 export class TetrisAI {
-    constructor() {
-        var rotation = Game.getRotation();
-        switch(rotation){
-            case PieceRotation._0:
-
-                break;
-        }
+    constructor(private game: IGameInstance) {
     }
     tick() {
-
+        this.game.moveLeft();
     }
 }

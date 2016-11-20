@@ -1,4 +1,4 @@
-interface GameInstance {
+interface IGameInstance {
     moveLeft(): boolean;
     moveRight(): boolean;
     moveDown(): boolean;
@@ -10,8 +10,6 @@ declare enum PieceRotation{
     _0, _90, _180, _270
 }
 
-declare module "game" {
-    export = Game;
+interface ITetrisAI {
+    tick(): void;
 }
-declare var Game: GameInstance;
-
