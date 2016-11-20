@@ -23,21 +23,22 @@ export class GameCanvas {
                 if (this.collidesWalls()) {
                     this.board.currentPosition.x++;
                 }
-
-                this.checkCollision(() => {
-                    this.board.currentPosition.x++;
-                });
+                else {
+                    this.checkCollision(() => {
+                        this.board.currentPosition.x++;
+                    });
+                }
             });
 
             keyboardJS.bind('right', (e) => {
                 this.board.currentPosition.x++;
                 if (this.collidesWalls()) {
                     this.board.currentPosition.x--;
+                } else {
+                    this.checkCollision(() => {
+                        this.board.currentPosition.x--;
+                    });
                 }
-
-                this.checkCollision(() => {
-                    this.board.currentPosition.x--;
-                });
             });
 
             keyboardJS.bind('down', (e) => {
@@ -47,8 +48,14 @@ export class GameCanvas {
                 });
             });
             keyboardJS.bind('up', (e) => {
-                this.board.currentPiece.rotate();
-                // this.board.currentPosition.x;
+                let origSlot = this.board.currentPiece.currentSlot;
+                this.board.currentPiece.currentSlot = (this.board.currentPiece.currentSlot + 1) % 4;
+                if (this.collidesWalls()) {
+                    this.board.currentPiece.currentSlot = origSlot;
+                }
+                this.checkCollision(() => {
+                    this.board.currentPiece.currentSlot = origSlot;
+                });
             });
         });
 
@@ -65,10 +72,7 @@ export class GameCanvas {
 
     private reset() {
         this.board = new GameBoard();
-        this.board.currentPiece = GamePiece.pieces[(Math.random() * GamePiece.pieces.length) | 0].clone();
-
-        this.board.currentPosition.x = 5;
-        this.board.currentPosition.y = 0;
+        this.newPiece();
     }
 
     private tick() {
@@ -87,39 +91,15 @@ export class GameCanvas {
                     if (this.board.currentPiece) {
                         if (this.board.currentPiece.slot[this.board.currentPosition.x - x] &&
                             this.board.currentPiece.slot[this.board.currentPosition.x - x][this.board.currentPosition.y - y]) {
-                            this.board.slots[x][y] = this.board.currentPiece.slot[this.board.currentPosition.x - x][this.board.currentPosition.y - y];
+                            this.board.slots[x][y] = this.board.currentPiece.gameSlot;
                         }
                     }
                 }
             }
 
 
-            for (let y = this.boardHeight - 1; y >= 0; y--) {
-                var bad = false;
-                for (let x = 0; x < this.boardWidth; x++) {
-                    if (!this.board.slots[x][y]) {
-                        bad = true;
-                        break;
-                    }
-                }
-                if (!bad) {
-                    for (let _y = y; _y > 0; _y-- ) {
-                        for (let x = 0; x < this.boardWidth; x++) {
-                            this.board.slots[x][_y] = this.board.slots[x][_y - 1];
-                        }
-                    }
-                }
-            }
-
-
-            this.board.currentPiece = GamePiece.pieces[(Math.random() * GamePiece.pieces.length) | 0].clone();
-            this.board.currentPosition.x = 5;
-            this.board.currentPosition.y = 0;
-            if (this.collides()) {
-                this.reset();
-            }
+            this.newPiece();
         }
-
     }
 
 
@@ -174,6 +154,35 @@ export class GameCanvas {
         return false;
     }
 
+    private newPiece() {
+
+        for (let y = this.boardHeight - 1; y >= 0; y--) {
+            let bad = false;
+            for (let x = 0; x < this.boardWidth; x++) {
+                if (!this.board.slots[x][y]) {
+                    bad = true;
+                    break;
+                }
+            }
+            if (!bad) {
+                for (let _y = y; _y > 0; _y--) {
+                    for (let x = 0; x < this.boardWidth; x++) {
+                        this.board.slots[x][_y] = this.board.slots[x][_y - 1];
+                    }
+                }
+                y++;
+            }
+        }
+
+        this.board.currentPiece = GamePiece.pieces[(Math.random() * GamePiece.pieces.length) | 0];
+        this.board.currentPiece.currentSlot = 0;
+        this.board.currentPosition.x = 5;
+        this.board.currentPosition.y = 0;
+        if (this.collides()) {
+            this.reset();
+        }
+    }
+
     private render() {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -194,7 +203,7 @@ export class GameCanvas {
                     if (this.board.currentPiece) {
                         if (this.board.currentPiece.slot[this.board.currentPosition.x - x] &&
                             this.board.currentPiece.slot[this.board.currentPosition.x - x][this.board.currentPosition.y - y]) {
-                            slot = this.board.currentPiece.slot[this.board.currentPosition.x - x][this.board.currentPosition.y - y];
+                            slot = this.board.currentPiece.gameSlot;
                             color = slot.color;
                             drawBlock = true;
                         }
@@ -251,72 +260,154 @@ export class GameSlot {
 }
 export class GamePiece {
     static pieces: GamePiece[] = [
-        new GamePiece([
-            [null, null, null, null],
-            [null, new GameSlot('red'), null, null],
-            [null, new GameSlot('red'), null, null],
-            [null, new GameSlot('red'), new GameSlot('red'), null],
+        new GamePiece(new GameSlot('orange'), [
+            [
+                [0, 0, 1],
+                [1, 1, 1],
+                [0, 0, 0],
+            ], [
+                [0, 1, 0],
+                [0, 1, 0],
+                [0, 1, 1],
+            ], [
+                [0, 0, 0],
+                [1, 1, 1],
+                [1, 0, 0],
+            ], [
+                [1, 1, 0],
+                [0, 1, 0],
+                [0, 1, 0],
+            ]
         ]),
-        new GamePiece([
-            [null, null, null, null],
-            [null, new GameSlot('blue'), new GameSlot('blue'), null],
-            [null, new GameSlot('blue'), new GameSlot('blue'), null],
-            [null, null, null, null],
+        new GamePiece(new GameSlot('blue'), [
+            [
+                [1, 0, 0],
+                [1, 1, 1],
+                [0, 0, 0],
+            ], [
+                [0, 1, 1],
+                [0, 1, 0],
+                [0, 1, 0],
+            ], [
+                [0, 0, 0],
+                [1, 1, 1],
+                [0, 0, 1],
+            ], [
+                [0, 1, 0],
+                [0, 1, 0],
+                [1, 1, 0],
+            ]
         ]),
-        new GamePiece([
-            [null, null, null, null],
-            [new GameSlot('green'), new GameSlot('green'), null],
-            [null, new GameSlot('green'), new GameSlot('green'), null],
-            [null, null, null, null],
+        new GamePiece(new GameSlot('yellow'), [
+            [
+                [0, 1, 1, 0],
+                [0, 1, 1, 0],
+                [0, 0, 0, 0]
+            ], [
+                [0, 1, 1, 0],
+                [0, 1, 1, 0],
+                [0, 0, 0, 0]
+            ], [
+                [0, 1, 1, 0],
+                [0, 1, 1, 0],
+                [0, 0, 0, 0]
+            ], [
+                [0, 1, 1, 0],
+                [0, 1, 1, 0],
+                [0, 0, 0, 0]
+            ]
         ]),
-        new GamePiece([
-            [null, null, null, null],
-            [null, new GameSlot('yellow'), new GameSlot('yellow'), null],
-            [new GameSlot('yellow'), new GameSlot('yellow'), null, null],
-            [null, null, null, null],
+        new GamePiece(new GameSlot('green'), [
+            [
+                [0, 1, 1],
+                [1, 1, 0],
+                [0, 0, 0],
+            ], [
+                [0, 1, 0],
+                [0, 1, 1],
+                [0, 0, 1],
+            ], [
+                [0, 0, 0],
+                [0, 1, 1],
+                [1, 1, 0],
+            ], [
+                [1, 0, 0],
+                [1, 1, 0],
+                [0, 1, 0],
+            ]
         ]),
-        new GamePiece([
-            [new GameSlot('purple'), null, null, null],
-            [new GameSlot('purple'), null, null, null],
-            [new GameSlot('purple'), null, null, null],
-            [new GameSlot('purple'), null, null, null],
+        new GamePiece(new GameSlot('red'), [
+            [
+                [1, 1, 0],
+                [0, 1, 1],
+                [0, 0, 0],
+            ], [
+                [0, 0, 1],
+                [0, 1, 1],
+                [0, 1, 0],
+            ], [
+                [0, 0, 0],
+                [1, 1, 0],
+                [0, 1, 1],
+            ], [
+                [1, 0, 0],
+                [1, 1, 0],
+                [0, 1, 0],
+            ]
         ]),
-        new GamePiece([
-            [new GameSlot('pink'), new GameSlot('pink'), new GameSlot('pink'), null],
-            [null, new GameSlot('pink'), null, null],
-            [null, null, null, null],
-            [null, null, null, null],
+        new GamePiece(new GameSlot('cyan'), [
+            [
+                [0, 0, 0, 0],
+                [1, 1, 1, 1],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+            ], [
+                [0, 0, 1, 0],
+                [0, 0, 1, 0],
+                [0, 0, 1, 0],
+                [0, 0, 1, 0],
+            ], [
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [1, 1, 1, 1],
+                [0, 0, 0, 0],
+            ], [
+                [0, 1, 0, 0],
+                [0, 1, 0, 0],
+                [0, 1, 0, 0],
+                [0, 1, 0, 0],
+            ]
+        ])
+        ,
+        new GamePiece(new GameSlot('purple'), [
+            [
+                [0, 1, 0],
+                [1, 1, 1],
+                [0, 0, 0],
+            ], [
+                [0, 1, 0],
+                [0, 1, 1],
+                [0, 1, 0],
+            ], [
+                [0, 0, 0],
+                [1, 1, 1],
+                [0, 1, 0],
+            ], [
+                [0, 1, 0],
+                [1, 1, 0],
+                [0, 1, 0],
+            ]
         ])
 
     ];
 
-    constructor(slot: GameSlot[][]) {
-        this.slot = slot;
+    constructor(public gameSlot: GameSlot, public slots: number[][][]) {
     }
 
-    slot: GameSlot[][];
+    public currentSlot: number = 0;
 
-    clone() {
-        return new GamePiece(this.slot.map(a => a.map(b => b && new GameSlot(b.color))));
+    public get slot() {
+        return this.slots[this.currentSlot];
     }
 
-    rotate() {
-        let w = 4;
-        let h = 4;
-        let n: GameSlot[][] = [];
-        for (let x = 0; x < w; x++) {
-            n[x] = [];
-            for (let y = 0; y < h; y++) {
-                n[x][y] = null;
-            }
-        }
-
-        for (let x = 0; x < w; x++) {
-            for (let y = 0; y < h; y++) {
-                n[(h - 1) - y][x] = this.slot[x][y];
-            }
-        }
-        this.slot = n;
-
-    }
 }
