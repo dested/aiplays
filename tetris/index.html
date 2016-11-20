@@ -9,7 +9,9 @@
 <div style="width:40%;display:inline-block">
     <button onclick="runCode()">Run</button>
     <div id="container" style="width:800px;height:600px;border:1px solid grey"></div>
+    <textarea id="console" style="width:800px;height:200px;"></textarea>
 </div>
+
 <div style="width:40%;display:inline-block">
     <canvas id="board"></canvas>
 </div>
@@ -20,7 +22,7 @@
 
     System.config({
         packages: {
-            'app': { main: 'main.ts', defaultExtension: 'ts', meta: { '*': { format: 'esm' } } },
+            'app': {main: 'main.ts', defaultExtension: 'ts', meta: {'*': {format: 'esm'}}},
         },
         transpiler: 'typescript',
         baseURL: '',

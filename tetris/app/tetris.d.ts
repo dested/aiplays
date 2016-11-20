@@ -4,6 +4,12 @@ interface IGameInstance {
     moveDown(): boolean;
     rotate(): boolean;
     getRotation(): PieceRotation;
+    isBlocked(x: number, y: number): boolean ;
+    getPiece(index: number): IGamePiece ;
+}
+interface IGamePiece {
+    slot: boolean[][];
+    color: string;
 }
 
 declare enum PieceRotation{

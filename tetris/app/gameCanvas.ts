@@ -1,4 +1,5 @@
 declare var require;
+declare var exports;
 
 export class GameCanvas {
     private canvas: HTMLCanvasElement;
@@ -8,6 +9,7 @@ export class GameCanvas {
     private boardWidth = 10;
     private boardHeight = 22;
     public board: GameBoard;
+    private slotIndexes: number[] = [0, 1, 2, 3, 4, 5, 6];
     private aiScript: ITetrisAI;
 
     constructor() {
@@ -25,6 +27,10 @@ export class GameCanvas {
 
             keyboardJS.bind('right', (e) => {
                 this.moveRight();
+            });
+
+            keyboardJS.bind('enter', (e) => {
+                this.newPiece(true);
             });
 
             keyboardJS.bind('down', (e) => {
@@ -106,13 +112,18 @@ export class GameCanvas {
 
     private reset() {
         this.board = new GameBoard();
-        this.newPiece();
+        this.newPiece(false);
     }
 
     public loadAIScript(script: string) {
         this.reset();
 
-        (<any>window).eval(`var exports = {TetrisAI: null};${script}`);
+        let sc = `var exports = {TetrisAI: null};
+        {
+            let console={log:function(msg){document.getElementById('console').value+=msg+'\\r\\n';}}
+            ${script}
+        }`;
+        (<any>window).eval(sc);
 
         this.aiScript = new exports.TetrisAI(new GameInstance(this));
 
@@ -144,7 +155,7 @@ export class GameCanvas {
             }
 
 
-            this.newPiece();
+            this.newPiece(false);
         }
     }
 
@@ -200,7 +211,7 @@ export class GameCanvas {
         return false;
     }
 
-    private newPiece() {
+    public newPiece(swap: boolean) {
 
         for (let y = this.boardHeight - 1; y >= 0; y--) {
             let bad = false;
@@ -220,12 +231,43 @@ export class GameCanvas {
             }
         }
 
-        this.board.currentPiece = GamePiece.pieces[(Math.random() * GamePiece.pieces.length) | 0];
-        this.board.currentPiece.currentSlot = 0;
-        this.board.currentPosition.x = 5;
-        this.board.currentPosition.y = 0;
-        if (this.collides()) {
-            this.reset();
+        if (swap) {
+
+            if (this.board.swapPiece) {
+                [this.board.currentPiece, this.board.swapPiece] = [this.board.swapPiece, this.board.currentPiece];
+            } else {
+                this.board.swapPiece = this.board.currentPiece;
+                this.nextPiece();
+            }
+
+            this.board.currentPosition.x = 5;
+            this.board.currentPosition.y = this.board.currentPiece.slot.length - 1;
+            if (this.collides()) {
+                this.reset();
+            }
+
+
+        } else {
+            this.nextPiece();
+
+            this.board.currentPosition.x = 5;
+            this.board.currentPosition.y = this.board.currentPiece.slot.length - 1;
+            if (this.collides()) {
+                this.reset();
+            }
+        }
+    }
+
+    private nextPiece() {
+        this.board.bagPiece++;
+        if (this.board.bagPiece === 7) {
+            this.board.bagPiece = 0;
+            this.slotIndexes.sort((a, b) => Math.random() * 100 - 50);
+            for (let i = 0; i < this.slotIndexes.length; i++) {
+                let ind = this.slotIndexes[i];
+                this.board.currentPieces[i] = GamePiece.pieces[this.slotIndexes[ind]];
+                this.board.currentPieces[i].currentSlot = 0;
+            }
         }
     }
 
@@ -285,6 +327,9 @@ export class GameCanvas {
 }
 
 export class GameBoard {
+    bagPiece: number = 6;
+    swapPiece: GamePiece;
+
     constructor() {
         this.slots = [];
         for (let x = 0; x < 10; x++) {
@@ -296,7 +341,16 @@ export class GameBoard {
     }
 
     slots: GameSlot[][];
-    currentPiece: GamePiece;
+    currentPieces: GamePiece[] = [];
+
+    get currentPiece(): GamePiece {
+        return this.currentPieces[this.bagPiece];
+    }
+
+    set currentPiece(value: GamePiece) {
+        this.currentPieces[this.bagPiece] = value;
+    }
+
     currentPosition: {x: number,y: number} = {x: 0, y: 0};
 }
 
@@ -304,159 +358,172 @@ export class GameSlot {
     constructor(public color: string) {
     }
 }
-export class GamePiece {
+
+export class GamePiece implements IGamePiece {
+
     static pieces: GamePiece[] = [
         new GamePiece(new GameSlot('orange'), [
             [
-                [0, 0, 1],
-                [1, 1, 1],
-                [0, 0, 0],
+                [!!0, !!0, !!1],
+                [!!1, !!1, !!1],
+                [!!0, !!0, !!0],
             ], [
-                [0, 1, 0],
-                [0, 1, 0],
-                [0, 1, 1],
+                [!!0, !!1, !!0],
+                [!!0, !!1, !!0],
+                [!!0, !!1, !!1],
             ], [
-                [0, 0, 0],
-                [1, 1, 1],
-                [1, 0, 0],
+                [!!0, !!0, !!0],
+                [!!1, !!1, !!1],
+                [!!1, !!0, !!0],
             ], [
-                [1, 1, 0],
-                [0, 1, 0],
-                [0, 1, 0],
+                [!!1, !!1, !!0],
+                [!!0, !!1, !!0],
+                [!!0, !!1, !!0],
             ]
         ]),
         new GamePiece(new GameSlot('blue'), [
             [
-                [1, 0, 0],
-                [1, 1, 1],
-                [0, 0, 0],
+                [!!1, !!0, !!0],
+                [!!1, !!1, !!1],
+                [!!0, !!0, !!0],
             ], [
-                [0, 1, 1],
-                [0, 1, 0],
-                [0, 1, 0],
+                [!!0, !!1, !!1],
+                [!!0, !!1, !!0],
+                [!!0, !!1, !!0],
             ], [
-                [0, 0, 0],
-                [1, 1, 1],
-                [0, 0, 1],
+                [!!0, !!0, !!0],
+                [!!1, !!1, !!1],
+                [!!0, !!0, !!1],
             ], [
-                [0, 1, 0],
-                [0, 1, 0],
-                [1, 1, 0],
+                [!!0, !!1, !!0],
+                [!!0, !!1, !!0],
+                [!!1, !!1, !!0],
             ]
         ]),
         new GamePiece(new GameSlot('yellow'), [
             [
-                [0, 1, 1, 0],
-                [0, 1, 1, 0],
-                [0, 0, 0, 0]
+                [!!0, !!1, !!1, !!0],
+                [!!0, !!1, !!1, !!0],
+                [!!0, !!0, !!0, !!0]
             ], [
-                [0, 1, 1, 0],
-                [0, 1, 1, 0],
-                [0, 0, 0, 0]
+                [!!0, !!1, !!1, !!0],
+                [!!0, !!1, !!1, !!0],
+                [!!0, !!0, !!0, !!0]
             ], [
-                [0, 1, 1, 0],
-                [0, 1, 1, 0],
-                [0, 0, 0, 0]
+                [!!0, !!1, !!1, !!0],
+                [!!0, !!1, !!1, !!0],
+                [!!0, !!0, !!0, !!0]
             ], [
-                [0, 1, 1, 0],
-                [0, 1, 1, 0],
-                [0, 0, 0, 0]
+                [!!0, !!1, !!1, !!0],
+                [!!0, !!1, !!1, !!0],
+                [!!0, !!0, !!0, !!0]
             ]
         ]),
         new GamePiece(new GameSlot('green'), [
             [
-                [0, 1, 1],
-                [1, 1, 0],
-                [0, 0, 0],
+                [!!0, !!1, !!1],
+                [!!1, !!1, !!0],
+                [!!0, !!0, !!0],
             ], [
-                [0, 1, 0],
-                [0, 1, 1],
-                [0, 0, 1],
+                [!!0, !!1, !!0],
+                [!!0, !!1, !!1],
+                [!!0, !!0, !!1],
             ], [
-                [0, 0, 0],
-                [0, 1, 1],
-                [1, 1, 0],
+                [!!0, !!0, !!0],
+                [!!0, !!1, !!1],
+                [!!1, !!1, !!0],
             ], [
-                [1, 0, 0],
-                [1, 1, 0],
-                [0, 1, 0],
+                [!!1, !!0, !!0],
+                [!!1, !!1, !!0],
+                [!!0, !!1, !!0],
             ]
         ]),
         new GamePiece(new GameSlot('red'), [
             [
-                [1, 1, 0],
-                [0, 1, 1],
-                [0, 0, 0],
+                [!!1, !!1, !!0],
+                [!!0, !!1, !!1],
+                [!!0, !!0, !!0],
             ], [
-                [0, 0, 1],
-                [0, 1, 1],
-                [0, 1, 0],
+                [!!0, !!0, !!1],
+                [!!0, !!1, !!1],
+                [!!0, !!1, !!0],
             ], [
-                [0, 0, 0],
-                [1, 1, 0],
-                [0, 1, 1],
+                [!!0, !!0, !!0],
+                [!!1, !!1, !!0],
+                [!!0, !!1, !!1],
             ], [
-                [1, 0, 0],
-                [1, 1, 0],
-                [0, 1, 0],
+                [!!1, !!0, !!0],
+                [!!1, !!1, !!0],
+                [!!0, !!1, !!0],
             ]
         ]),
         new GamePiece(new GameSlot('cyan'), [
             [
-                [0, 0, 0, 0],
-                [1, 1, 1, 1],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
+                [!!0, !!0, !!0, !!0],
+                [!!1, !!1, !!1, !!1],
+                [!!0, !!0, !!0, !!0],
+                [!!0, !!0, !!0, !!0],
             ], [
-                [0, 0, 1, 0],
-                [0, 0, 1, 0],
-                [0, 0, 1, 0],
-                [0, 0, 1, 0],
+                [!!0, !!0, !!1, !!0],
+                [!!0, !!0, !!1, !!0],
+                [!!0, !!0, !!1, !!0],
+                [!!0, !!0, !!1, !!0],
             ], [
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [1, 1, 1, 1],
-                [0, 0, 0, 0],
+                [!!0, !!0, !!0, !!0],
+                [!!0, !!0, !!0, !!0],
+                [!!1, !!1, !!1, !!1],
+                [!!0, !!0, !!0, !!0],
             ], [
-                [0, 1, 0, 0],
-                [0, 1, 0, 0],
-                [0, 1, 0, 0],
-                [0, 1, 0, 0],
+                [!!0, !!1, !!0, !!0],
+                [!!0, !!1, !!0, !!0],
+                [!!0, !!1, !!0, !!0],
+                [!!0, !!1, !!0, !!0],
             ]
         ])
         ,
         new GamePiece(new GameSlot('purple'), [
             [
-                [0, 1, 0],
-                [1, 1, 1],
-                [0, 0, 0],
+                [!!0, !!1, !!0],
+                [!!1, !!1, !!1],
+                [!!0, !!0, !!0],
             ], [
-                [0, 1, 0],
-                [0, 1, 1],
-                [0, 1, 0],
+                [!!0, !!1, !!0],
+                [!!0, !!1, !!1],
+                [!!0, !!1, !!0],
             ], [
-                [0, 0, 0],
-                [1, 1, 1],
-                [0, 1, 0],
+                [!!0, !!0, !!0],
+                [!!1, !!1, !!1],
+                [!!0, !!1, !!0],
             ], [
-                [0, 1, 0],
-                [1, 1, 0],
-                [0, 1, 0],
+                [!!0, !!1, !!0],
+                [!!1, !!1, !!0],
+                [!!0, !!1, !!0],
             ]
         ])
 
     ];
-
-    constructor(public gameSlot: GameSlot, public slots: number[][][]) {
-    }
-
     public currentSlot: number = 0;
 
-    public get slot() {
+    constructor(public gameSlot: GameSlot, public slots: boolean[][][]) {
+    }
+
+    public get slot(): boolean[][] {
         return this.slots[this.currentSlot];
     }
 
+    public set slot(piece: boolean[][]) {
+        throw new Error("Cannot set slot.");
+    }
+
+    public get color(): string {
+        return this.gameSlot.color;
+    }
+
+    public set color(color: string) {
+        throw new Error("Cannot set color.");
+    }
 }
+
 export class GameInstance implements IGameInstance {
 
     constructor(private gameCanvas: GameCanvas) {
@@ -466,6 +533,23 @@ export class GameInstance implements IGameInstance {
         var okay = this.gameCanvas.moveLeft();
         return okay;
     }
+
+    isBlocked(x: number, y: number): boolean {
+        return !!this.gameCanvas.board.slots[x][y];
+    }
+
+    swap(): void {
+        this.gameCanvas.newPiece(true);
+    }
+
+    getPiece(index: number): IGamePiece {
+        return this.gameCanvas.board.currentPiece[index];
+    }
+
+    getSwap(): IGamePiece {
+        return this.gameCanvas.board.swapPiece;
+    }
+
 
     moveRight(): boolean {
         var okay = this.gameCanvas.moveRight();
