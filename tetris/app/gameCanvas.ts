@@ -1,3 +1,4 @@
+import registerDocumentFormattingEditProvider = monaco.languages.registerDocumentFormattingEditProvider;
 declare var require;
 declare var exports;
 
@@ -6,8 +7,8 @@ export class GameCanvas {
     private context: CanvasRenderingContext2D;
 
     private blockSize = 32;
-    private boardWidth = 10;
-    private boardHeight = 22;
+    public boardWidth = 10;
+    public boardHeight = 22;
     public board: GameBoard;
     private slotIndexes: number[] = [0, 1, 2, 3, 4, 5, 6];
     private aiScript: ITetrisAI;
@@ -136,7 +137,18 @@ export class GameCanvas {
 
         let sc = `var exports = {TetrisAI: null};
         {
-            let console={log:function(msg){document.getElementById('console').value+=msg+'\\r\\n';}}
+            let console={
+                log : function(){
+                    var mm='';
+                    for(var i=0;i<arguments.length;i++) {
+                        mm+=arguments[i]+" ";
+                    }
+                    document.getElementById('console').value+=mm+'\\r\\n';
+                },
+                clear:function(){
+                document.getElementById('console').value='';
+                }
+            }
             ${script}
         }`;
         (<any>window).eval(sc);
@@ -151,6 +163,7 @@ export class GameCanvas {
         this.checkCollision(() => {
             this.board.currentPosition.y--;
         });
+
         if (this.aiScript) {
             this.aiScript.tick();
         }
@@ -321,7 +334,7 @@ export class GameCanvas {
                     }
                     else {
                         var colorPad = 5;
-                        this.context.fillStyle = this.colorLuminance(color, -.3);
+                        this.context.fillStyle = GameCanvas.colorLuminance(color, -.3);
                         this.context.fillRect((x + 1) * this.blockSize, (y + 1) * this.blockSize, this.blockSize, this.blockSize);
                         this.context.fillStyle = color;
                         this.context.fillRect((x + 1) * this.blockSize + colorPad, (y + 1) * this.blockSize + colorPad, this.blockSize - colorPad * 2, this.blockSize - colorPad * 2);
@@ -341,7 +354,7 @@ export class GameCanvas {
         window.requestAnimationFrame(() => this.render());
     }
 
-    private colorLuminance(hex, lum) {
+    private static colorLuminance(hex, lum) {
 
         // validate hex string
         hex = String(hex).replace(/[^0-9a-f]/gi, '');
@@ -398,146 +411,162 @@ export class GameSlot {
 export class GamePiece implements IGamePiece {
 
     static pieces: GamePiece[] = [
-        new GamePiece(new GameSlot('#FFD800'), [
-            [
+        new GamePiece(new GameSlot('#FFD800'), [//orange L
+            GamePiece.flip([
                 [!!0, !!0, !!1],
                 [!!1, !!1, !!1],
                 [!!0, !!0, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!1, !!0],
                 [!!0, !!1, !!0],
                 [!!0, !!1, !!1],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!0, !!0],
                 [!!1, !!1, !!1],
                 [!!1, !!0, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!1, !!1, !!0],
                 [!!0, !!1, !!0],
                 [!!0, !!1, !!0],
-            ]
+            ])
         ]),
-        new GamePiece(new GameSlot('#0026FF'), [
-            [
+        new GamePiece(new GameSlot('#0026FF'), [//blue L
+            GamePiece.flip([
                 [!!1, !!0, !!0],
                 [!!1, !!1, !!1],
                 [!!0, !!0, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!1, !!1],
                 [!!0, !!1, !!0],
                 [!!0, !!1, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!0, !!0],
                 [!!1, !!1, !!1],
                 [!!0, !!0, !!1],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!1, !!0],
                 [!!0, !!1, !!0],
                 [!!1, !!1, !!0],
-            ]
+            ])
         ]),
-        new GamePiece(new GameSlot('#FFE97F'), [
-            [
+        new GamePiece(new GameSlot('#FFE97F'), [//yellow square
+            ([
                 [!!0, !!1, !!1, !!0],
                 [!!0, !!1, !!1, !!0],
                 [!!0, !!0, !!0, !!0]
-            ], [
+            ]), ([
                 [!!0, !!1, !!1, !!0],
                 [!!0, !!1, !!1, !!0],
                 [!!0, !!0, !!0, !!0]
-            ], [
+            ]), ([
                 [!!0, !!1, !!1, !!0],
                 [!!0, !!1, !!1, !!0],
                 [!!0, !!0, !!0, !!0]
-            ], [
+            ]), ([
                 [!!0, !!1, !!1, !!0],
                 [!!0, !!1, !!1, !!0],
                 [!!0, !!0, !!0, !!0]
-            ]
+            ])
         ]),
-        new GamePiece(new GameSlot('#00FF21'), [
-            [
+        new GamePiece(new GameSlot('#00FF21'), [//green s
+            GamePiece.flip([
                 [!!0, !!1, !!1],
                 [!!1, !!1, !!0],
                 [!!0, !!0, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!1, !!0],
                 [!!0, !!1, !!1],
                 [!!0, !!0, !!1],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!0, !!0],
                 [!!0, !!1, !!1],
                 [!!1, !!1, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!1, !!0, !!0],
                 [!!1, !!1, !!0],
                 [!!0, !!1, !!0],
-            ]
+            ])
         ]),
-        new GamePiece(new GameSlot('#FF0000'), [
-            [
+        new GamePiece(new GameSlot('#FF0000'), [//red s
+            GamePiece.flip([
                 [!!1, !!1, !!0],
                 [!!0, !!1, !!1],
                 [!!0, !!0, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!0, !!1],
                 [!!0, !!1, !!1],
                 [!!0, !!1, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!0, !!0],
                 [!!1, !!1, !!0],
                 [!!0, !!1, !!1],
-            ], [
+            ]), GamePiece.flip([
                 [!!1, !!0, !!0],
                 [!!1, !!1, !!0],
                 [!!0, !!1, !!0],
-            ]
+            ])
         ]),
-        new GamePiece(new GameSlot('#00FFFF'), [
-            [
+        new GamePiece(new GameSlot('#00FFFF'), [//cyan l
+            GamePiece.flip([
                 [!!0, !!0, !!0, !!0],
                 [!!1, !!1, !!1, !!1],
                 [!!0, !!0, !!0, !!0],
                 [!!0, !!0, !!0, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!0, !!1, !!0],
                 [!!0, !!0, !!1, !!0],
                 [!!0, !!0, !!1, !!0],
                 [!!0, !!0, !!1, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!0, !!0, !!0],
                 [!!0, !!0, !!0, !!0],
                 [!!1, !!1, !!1, !!1],
                 [!!0, !!0, !!0, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!1, !!0, !!0],
                 [!!0, !!1, !!0, !!0],
                 [!!0, !!1, !!0, !!0],
                 [!!0, !!1, !!0, !!0],
-            ]
+            ])
         ])
         ,
-        new GamePiece(new GameSlot('#B200FF'), [
-            [
+        new GamePiece(new GameSlot('#B200FF'), [//purple t
+            GamePiece.flip([
                 [!!0, !!1, !!0],
                 [!!1, !!1, !!1],
                 [!!0, !!0, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!1, !!0],
                 [!!0, !!1, !!1],
                 [!!0, !!1, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!0, !!0],
                 [!!1, !!1, !!1],
                 [!!0, !!1, !!0],
-            ], [
+            ]), GamePiece.flip([
                 [!!0, !!1, !!0],
                 [!!1, !!1, !!0],
                 [!!0, !!1, !!0],
-            ]
+            ])
         ])
 
     ];
+
+    private static flip(box: boolean[][]): boolean[][] {
+        var bbox: boolean[][] = [];
+        for (var x = 0; x < box.length; x++) {
+            bbox[x] = [];
+        }
+
+        for (var x = 0; x < box.length; x++) {
+            for (var y = 0; y < box[x].length; y++) {
+                bbox[x][y] = box[y][x];
+            }
+        }
+        return bbox;
+
+    }
+
     public currentSlot: number = 0;
 
     constructor(public gameSlot: GameSlot, public slots: boolean[][][]) {
@@ -561,9 +590,17 @@ export class GamePiece implements IGamePiece {
 }
 
 export class GameInstance implements IGameInstance {
+    get boardHeight(): number {
+        return this.gameCanvas.boardHeight;
+    }
+
+    get boardWidth(): number {
+        return this.gameCanvas.boardWidth;
+    }
 
     constructor(private gameCanvas: GameCanvas) {
     }
+
 
     moveLeft(): boolean {
         var okay = this.gameCanvas.moveLeft();
@@ -578,8 +615,35 @@ export class GameInstance implements IGameInstance {
         this.gameCanvas.newPiece(true);
     }
 
+    drop(): void {
+        while (this.gameCanvas.moveDown());
+    }
+
     getPiece(index: number): IGamePiece {
-        return this.gameCanvas.board.currentPiece[index];
+        return this.gameCanvas.board.currentPieces[this.gameCanvas.board.bagPiece + index];
+    }
+
+    getCurrentPiece(): IGamePiece {
+        return this.getPiece(0);
+    }
+
+    getPosition(): {x: number,y: number} {
+        let pos = {x: 0, y: 0};
+
+        for (let y = -1; y < this.boardHeight + 1; y++) {
+            for (let x = -1; x < this.boardWidth + 1; x++) {
+                if (this.gameCanvas.board.currentPiece) {
+                    if (this.gameCanvas.board.currentPiece.slot[this.gameCanvas.board.currentPosition.x - x] &&
+                        this.gameCanvas.board.currentPiece.slot[this.gameCanvas.board.currentPosition.x - x][this.gameCanvas.board.currentPosition.y - y]) {
+                        pos.x = x;
+                        pos.y = y;
+                        return pos;
+                    }
+                }
+            }
+        }
+
+        return pos;
     }
 
     getSwap(): IGamePiece {

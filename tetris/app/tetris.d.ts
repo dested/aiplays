@@ -1,11 +1,19 @@
 interface IGameInstance {
     moveLeft(): boolean;
+    isBlocked(x: number, y: number): boolean;
+    swap(): void;
+    getPiece(index: number): IGamePiece;
+    getSwap(): IGamePiece;
     moveRight(): boolean;
     moveDown(): boolean;
     rotate(): boolean;
+    drop(): void;
     getRotation(): PieceRotation;
-    isBlocked(x: number, y: number): boolean ;
-    getPiece(index: number): IGamePiece ;
+    getCurrentPiece(): IGamePiece;
+    getPosition(): {x: number,y: number};
+    boardHeight: number;
+    boardWidth: number;
+
 }
 interface IGamePiece {
     slot: boolean[][];
