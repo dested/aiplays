@@ -59,9 +59,16 @@ export class GameCanvas {
         });
 
 
+        let tetrisTickDuration = 10;
         setInterval(() => {
             this.tick();
-        }, 500);
+        }, tetrisTickDuration);
+
+        setInterval(() => {
+            if (this.aiScript) {
+                this.aiScript.tick();
+            }
+        }, tetrisTickDuration / 5);
 
 
         this.render();
@@ -164,9 +171,6 @@ export class GameCanvas {
             this.board.currentPosition.y--;
         });
 
-        if (this.aiScript) {
-            this.aiScript.tick();
-        }
     }
 
     private checkCollision(undoMove: ()=>void) {
@@ -611,6 +615,10 @@ export class GameInstance implements IGameInstance {
         return !!this.gameCanvas.board.slots[x][y];
     }
 
+    isOnBoard(x: number, y: number): boolean {
+        return x >= 0 && x < this.boardWidth && y >= 0 && y < this.boardHeight;
+    }
+
     swap(): void {
         this.gameCanvas.newPiece(true);
     }
@@ -627,22 +635,42 @@ export class GameInstance implements IGameInstance {
         return this.getPiece(0);
     }
 
-    getPosition(): {x: number,y: number} {
-        let pos = {x: 0, y: 0};
+    clone():GameSlot[][]{
+        return this.gameCanvas.board.slots.map(a=>a.map(b=>b));
+    }
+
+    getPosition(): {x: number,y: number,width: number,height: number} {
+        let pos = {x: 0, y: 0, width: 0, height: 0};
+
+        let lowestX = 100;
+        let lowestY = 100;
+        let highestX = 0;
+        let highestY = 0;
+
+        let currentPiece = this.gameCanvas.board.currentPiece;
+        let slot = currentPiece.slot;
+        let px = this.gameCanvas.board.currentPosition.x;
+        let py = this.gameCanvas.board.currentPosition.y;
 
         for (let y = -1; y < this.boardHeight + 1; y++) {
             for (let x = -1; x < this.boardWidth + 1; x++) {
-                if (this.gameCanvas.board.currentPiece) {
-                    if (this.gameCanvas.board.currentPiece.slot[this.gameCanvas.board.currentPosition.x - x] &&
-                        this.gameCanvas.board.currentPiece.slot[this.gameCanvas.board.currentPosition.x - x][this.gameCanvas.board.currentPosition.y - y]) {
-                        pos.x = x;
-                        pos.y = y;
-                        return pos;
+                if (currentPiece) {
+                    if (slot[px - x] &&
+                        slot[px - x][py - y]) {
+                        if (lowestX > x) lowestX = x;
+                        if (lowestY > y) lowestY = y;
+                        if (highestX < x) highestX = x;
+                        if (highestY < y) highestY = y;
                     }
                 }
             }
         }
 
+        pos.x = lowestX;
+        pos.y = lowestY;
+
+        pos.width = highestX - lowestX;
+        pos.height = highestY - lowestY;
         return pos;
     }
 

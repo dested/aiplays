@@ -1,6 +1,7 @@
 interface IGameInstance {
     moveLeft(): boolean;
     isBlocked(x: number, y: number): boolean;
+    isOnBoard(x: number, y: number): boolean;
     swap(): void;
     getPiece(index: number): IGamePiece;
     getSwap(): IGamePiece;
@@ -10,7 +11,7 @@ interface IGameInstance {
     drop(): void;
     getRotation(): PieceRotation;
     getCurrentPiece(): IGamePiece;
-    getPosition(): {x: number,y: number};
+    getPosition(): {x: number,y: number,width: number,height: number};
     boardHeight: number;
     boardWidth: number;
 
