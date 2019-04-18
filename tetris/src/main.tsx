@@ -29,10 +29,6 @@ async function main() {
   run();
 
   const gameCanvas = new GameCanvas();
-  const codeEditor = new CodeEditor(script => {
-    gameCanvas.loadAIScript(script);
-  });
-  await codeEditor.start();
 }
 
 main();
