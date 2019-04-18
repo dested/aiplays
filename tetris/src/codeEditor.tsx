@@ -28,7 +28,7 @@ export class CodeEditor extends React.Component<Props, State> {
     });
 
     const text = await (await fetch('./src/tetris.d.ts')).text();
-    let code = localStorage.getItem('tetris-script');
+    let code = ''; // localStorage.getItem('tetris-script');
     if (!code) {
       code = await (await fetch('./src/tetrisGame.ts')).text();
     }
@@ -95,7 +95,7 @@ export class CodeEditor extends React.Component<Props, State> {
         language={'typescript'}
         theme={'vs-dark'}
         value={this.state.code}
-        options={{automaticLayout: true}}
+        options={{automaticLayout: true, formatOnType: true}}
         onChange={this.onChange}
       />
     );

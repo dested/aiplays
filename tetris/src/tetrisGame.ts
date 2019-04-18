@@ -1,28 +1,26 @@
+import {IGameInstance, IGamePieceInstance} from './tetris';
+
 export class TetrisAI {
   constructor(private game: IGameInstance) {}
+
   tick() {
     console.clear();
-    for (let y = this.game.boardHeight - 1; y >= 0; y--) {
-      for (let x = 0; x < this.game.boardWidth; x++) {
-        let bad = false;
-
-        !this.testPiece(this.game.getCurrentPiece(), x, y) &&
-          this.game.rotate() &&
-          !this.testPiece(this.game.getCurrentPiece(), x, y) &&
-          this.game.rotate() &&
-          !this.testPiece(this.game.getCurrentPiece(), x, y) &&
-          this.game.rotate() &&
-          !this.testPiece(this.game.getCurrentPiece(), x, y) &&
-          this.game.rotate() &&
-          (bad = true);
-        if (!bad) {
-          return;
+    const scores: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      const testGame = this.game.clone();
+      testGame.rotatePiece();
+      for (let y = testGame.boardHeight - 1; y >= 0; y--) {
+        for (let x = 0; x < testGame.boardWidth; x++) {
+          if (this.testPiece(testGame, x, y)) {
+            return;
+          }
         }
       }
     }
   }
 
-  testPiece(piece: IGamePiece, x: number, y: number) {
+  testPiece(instance: IGameInstance, x: number, y: number) {
+    const piece = instance.getCurrentPiece();
     if (this.pieceFits(piece, x, y)) {
       let blocked = false;
       for (let subY = y - 1; subY >= 0; subY--) {
@@ -39,7 +37,7 @@ export class TetrisAI {
     return false;
   }
 
-  pieceFits(piece: IGamePiece, x: number, y: number) {
+  pieceFits(piece: IGamePieceInstance, x: number, y: number) {
     for (let px = 0; px < piece.slot.length; px++) {
       for (let py = 0; py < piece.slot[px].length; py++) {
         if (piece.slot[px][py]) {

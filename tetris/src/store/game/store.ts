@@ -1,12 +1,12 @@
 import {action, observable} from 'mobx';
-import {GameInstance, GameLogic} from './gameLogic';
+import {GameBoard} from '../../gameCanvas';
+import {GameInstance} from './gameInstance';
 
 export class GameStore {
   aiScript: {tick: () => void};
   start() {}
 
   loadAIScript(script: string) {
-    GameLogic.instance.reset();
     const sc = `
     (function (){
       var exports = {TetrisAI: null};
@@ -27,7 +27,11 @@ export class GameStore {
         })()`;
     const result = (window as any).eval(sc);
 
-    this.aiScript = new result.TetrisAI(new GameInstance());
+    const gameLogic = new GameInstance();
+    gameLogic.board = new GameBoard();
+    GameInstance.mainInstance = gameLogic;
+    gameLogic.reset();
+    this.aiScript = new result.TetrisAI(gameLogic);
   }
 }
 

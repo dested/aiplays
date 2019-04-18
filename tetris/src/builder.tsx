@@ -4,7 +4,7 @@ import {RouteComponentProps} from 'react-router';
 import {withRouter} from 'react-router-dom';
 import {CodeEditor} from './codeEditor';
 import {GameCanvas} from './gameCanvas';
-import {GameLogic} from './store/game/gameLogic';
+import {GameInstance} from './store/game/gameInstance';
 import {MainStoreName, MainStoreProps} from './store/main/store';
 
 interface Props extends RouteComponentProps<{}>, MainStoreProps {}
@@ -32,7 +32,7 @@ export class Component extends React.Component<Props, State> {
 
         <div
           style={{
-            width: (GameLogic.instance.boardWidth + 2) * GameCanvas.blockSize,
+            width: (GameInstance.boardWidth + 2) * GameCanvas.blockSize,
             flexDirection: 'column',
             display: 'flex',
           }}

@@ -2,16 +2,25 @@ import * as keyboardJS from 'keyboardjs';
 import {inject, observer} from 'mobx-react';
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
-import {GameLogic} from './store/game/gameLogic';
+import {GameInstance} from './store/game/gameInstance';
 import {gameStore} from './store/game/store';
 import {MainStoreName, MainStoreProps} from './store/main/store';
+import {IGameInstance, IGamePieceInstance, PieceRotation} from './tetris';
 
 interface Props extends MainStoreProps {}
-interface State {}
+interface State {
+  isSlow: boolean;
+}
 
 @inject(MainStoreName)
 @observer
 export class GameCanvas extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+
+    this.state = {isSlow: true};
+  }
+
   private canvas = React.createRef<HTMLCanvasElement>();
   private canvasContext: CanvasRenderingContext2D;
 
@@ -19,10 +28,6 @@ export class GameCanvas extends React.Component<Props, State> {
 
   componentDidMount() {
     this.canvasContext = this.canvas.current.getContext('2d');
-
-    this.canvas.current.width = (GameLogic.instance.boardWidth + 2) * GameCanvas.blockSize;
-    this.canvas.current.height = (GameLogic.instance.boardHeight + 2) * GameCanvas.blockSize;
-    GameLogic.instance.reset();
 
     let leftDown = false;
     let rightDown = false;
@@ -37,7 +42,7 @@ export class GameCanvas extends React.Component<Props, State> {
           return;
         }
         leftDown = true;
-        GameLogic.instance.moveLeft();
+        GameInstance.mainInstance.moveLeft();
       },
       () => (leftDown = false)
     );
@@ -49,7 +54,7 @@ export class GameCanvas extends React.Component<Props, State> {
           return;
         }
         rightDown = true;
-        GameLogic.instance.moveRight();
+        GameInstance.mainInstance.moveRight();
       },
       () => (rightDown = false)
     );
@@ -61,7 +66,7 @@ export class GameCanvas extends React.Component<Props, State> {
           return;
         }
         downDown = true;
-        GameLogic.instance.newPiece(true);
+        GameInstance.mainInstance.newPiece(true);
       },
       () => (downDown = false)
     );
@@ -73,7 +78,7 @@ export class GameCanvas extends React.Component<Props, State> {
           return;
         }
         upDown = true;
-        GameLogic.instance.moveDown();
+        GameInstance.mainInstance.moveDown();
       },
       () => (upDown = false)
     );
@@ -84,35 +89,65 @@ export class GameCanvas extends React.Component<Props, State> {
           return;
         }
         enterDown = true;
-        GameLogic.instance.rotate();
+        GameInstance.mainInstance.rotatePiece();
       },
       () => (enterDown = false)
     );
+    this.toggleSpeed();
+    this.canvasRender();
+  }
 
-    const tetrisTickDuration = 10;
-    setInterval(() => {
-      GameLogic.instance.tick();
+  logicInterval: any;
+  scriptInterval: any;
+  toggleSpeed = () => {
+    clearInterval(this.logicInterval);
+    clearInterval(this.scriptInterval);
+    this.setState({isSlow: !this.state.isSlow});
+    const tetrisTickDuration = this.state.isSlow ? 5000 : 100;
+    this.logicInterval = setInterval(() => {
+      GameInstance.mainInstance.tick();
     }, tetrisTickDuration);
 
-    setInterval(() => {
+    this.scriptInterval = setInterval(() => {
       if (gameStore.aiScript) {
         gameStore.aiScript.tick();
       }
     }, tetrisTickDuration / 5);
-
-    this.canvasRender();
-  }
+  };
 
   render() {
-    return <canvas ref={this.canvas} />;
+    return (
+      <>
+        <button
+          onClick={this.toggleSpeed}
+          style={{
+            border: 0,
+            backgroundColor: this.state.isSlow ? 'red' : 'blue',
+            color: 'white',
+            fontSize: 40,
+            height: '100%',
+          }}
+        >
+          {this.state.isSlow ? 'fast' : 'slow'}
+        </button>
+        <canvas
+          ref={this.canvas}
+          width={(GameInstance.boardWidth + 2) * GameCanvas.blockSize}
+          height={(GameInstance.boardHeight + 2) * GameCanvas.blockSize}
+        />
+      </>
+    );
   }
 
   canvasRender() {
     this.canvasContext.clearRect(0, 0, this.canvas.current.width, this.canvas.current.height);
-
-    const boardHeight = GameLogic.instance.boardHeight;
-    const boardWidth = GameLogic.instance.boardWidth;
-    const board = GameLogic.instance.board;
+    if (!GameInstance.mainInstance) {
+      window.requestAnimationFrame(() => this.canvasRender());
+      return;
+    }
+    const boardHeight = GameInstance.boardHeight;
+    const boardWidth = GameInstance.boardWidth;
+    const board = GameInstance.mainInstance.board;
 
     for (let y = -1; y < boardHeight + 1; y++) {
       for (let x = -1; x < boardWidth + 1; x++) {
@@ -130,10 +165,10 @@ export class GameCanvas extends React.Component<Props, State> {
 
           if (board.currentPiece) {
             if (
-              board.currentPiece.slot[board.currentPosition.x - x] &&
-              board.currentPiece.slot[board.currentPosition.x - x][board.currentPosition.y - y]
+              board.currentPiece.slot[board.currentPiece.x - x] &&
+              board.currentPiece.slot[board.currentPiece.x - x][board.currentPiece.y - y]
             ) {
-              slot = board.currentPiece.gameSlot;
+              slot = board.currentPiece.piece.gameSlot;
               color = slot.color;
               drawBlock = true;
             }
@@ -189,9 +224,74 @@ export class GameCanvas extends React.Component<Props, State> {
   }
 }
 
+export class GamePieceInstance implements IGamePieceInstance {
+  constructor(
+    private gameInstance: IGameInstance,
+    public x: number,
+    public y: number,
+    public rotation: PieceRotation,
+    public piece: GamePieceData
+  ) {}
+
+  get slot() {
+    return this.piece.slots[this.rotation];
+  }
+
+  canMoveDown(): boolean {
+    const canMoveDown = this.gameInstance.moveDown();
+    if (canMoveDown) {
+      this.y--;
+    }
+    return canMoveDown;
+  }
+
+  canMoveLeft(): boolean {
+    const canMoveLeft = this.gameInstance.moveLeft();
+    if (canMoveLeft) {
+      this.x++;
+    }
+    return canMoveLeft;
+  }
+
+  canMoveRight(): boolean {
+    const canMoveRight = this.gameInstance.moveRight();
+    if (canMoveRight) {
+      this.x--;
+    }
+    return canMoveRight;
+  }
+
+  canRotate(): boolean {
+    const rotate = this.rotation;
+    const canRotate = this.gameInstance.rotatePiece();
+    if (canRotate) {
+      this.rotation = rotate;
+    }
+    return canRotate;
+  }
+
+  moveDown(): boolean {
+    return this.gameInstance.moveDown();
+  }
+
+  moveLeft(): boolean {
+    return this.gameInstance.moveLeft();
+  }
+
+  moveRight(): boolean {
+    return this.gameInstance.moveRight();
+  }
+
+  rotatePiece(): boolean {
+    return this.gameInstance.rotatePiece();
+  }
+}
+
 export class GameBoard {
   bagPiece: number = 6;
-  swapPiece: GamePiece;
+  swapPiece: GamePieceInstance;
+  slots: GameSlot[][];
+  currentPieces: GamePieceInstance[] = [];
 
   constructor() {
     this.slots = [];
@@ -203,74 +303,84 @@ export class GameBoard {
     }
   }
 
-  slots: GameSlot[][];
-  currentPieces: GamePiece[] = [];
-
-  get currentPiece(): GamePiece {
-    return this.currentPieces[this.bagPiece];
+  get currentPiece(): GamePieceInstance {
+    const gamePiece = this.currentPieces[this.bagPiece];
+    if (!gamePiece) {
+      return undefined;
+    }
+    return gamePiece;
   }
 
-  set currentPiece(value: GamePiece) {
+  set currentPiece(value: GamePieceInstance) {
     this.currentPieces[this.bagPiece] = value;
   }
 
-  currentPosition: {x: number; y: number} = {x: 0, y: 0};
+  clone(gameInstance: IGameInstance) {
+    const gameBoard = new GameBoard();
+    gameBoard.bagPiece = this.bagPiece;
+    gameBoard.swapPiece = this.swapPiece;
+    gameBoard.slots = this.slots.map(arr => arr.slice());
+    gameBoard.currentPieces = this.currentPieces.map(
+      a => new GamePieceInstance(gameInstance, a.x, a.y, a.rotation, a.piece)
+    );
+    return gameBoard;
+  }
 }
 
 export class GameSlot {
   constructor(public color: string) {}
 }
 
-export class GamePiece implements IGamePiece {
-  static pieces: GamePiece[] = [
-    new GamePiece(new GameSlot('#FFD800'), [
+export class GamePieceData {
+  static pieces: GamePieceData[] = [
+    new GamePieceData(new GameSlot('#FFD800'), [
       // orange L
-      GamePiece.flip([[!!0, !!0, !!1], [!!1, !!1, !!1], [!!0, !!0, !!0]]),
-      GamePiece.flip([[!!0, !!1, !!0], [!!0, !!1, !!0], [!!0, !!1, !!1]]),
-      GamePiece.flip([[!!0, !!0, !!0], [!!1, !!1, !!1], [!!1, !!0, !!0]]),
-      GamePiece.flip([[!!1, !!1, !!0], [!!0, !!1, !!0], [!!0, !!1, !!0]]),
+      GamePieceData.flip([[!!0, !!0, !!1], [!!1, !!1, !!1], [!!0, !!0, !!0]]),
+      GamePieceData.flip([[!!0, !!1, !!0], [!!0, !!1, !!0], [!!0, !!1, !!1]]),
+      GamePieceData.flip([[!!0, !!0, !!0], [!!1, !!1, !!1], [!!1, !!0, !!0]]),
+      GamePieceData.flip([[!!1, !!1, !!0], [!!0, !!1, !!0], [!!0, !!1, !!0]]),
     ]),
-    new GamePiece(new GameSlot('#0026FF'), [
+    new GamePieceData(new GameSlot('#0026FF'), [
       // blue L
-      GamePiece.flip([[!!1, !!0, !!0], [!!1, !!1, !!1], [!!0, !!0, !!0]]),
-      GamePiece.flip([[!!0, !!1, !!1], [!!0, !!1, !!0], [!!0, !!1, !!0]]),
-      GamePiece.flip([[!!0, !!0, !!0], [!!1, !!1, !!1], [!!0, !!0, !!1]]),
-      GamePiece.flip([[!!0, !!1, !!0], [!!0, !!1, !!0], [!!1, !!1, !!0]]),
+      GamePieceData.flip([[!!1, !!0, !!0], [!!1, !!1, !!1], [!!0, !!0, !!0]]),
+      GamePieceData.flip([[!!0, !!1, !!1], [!!0, !!1, !!0], [!!0, !!1, !!0]]),
+      GamePieceData.flip([[!!0, !!0, !!0], [!!1, !!1, !!1], [!!0, !!0, !!1]]),
+      GamePieceData.flip([[!!0, !!1, !!0], [!!0, !!1, !!0], [!!1, !!1, !!0]]),
     ]),
-    new GamePiece(new GameSlot('#FFE97F'), [
+    new GamePieceData(new GameSlot('#FFE97F'), [
       // yellow square
       [[!!0, !!1, !!1, !!0], [!!0, !!1, !!1, !!0], [!!0, !!0, !!0, !!0]],
       [[!!0, !!1, !!1, !!0], [!!0, !!1, !!1, !!0], [!!0, !!0, !!0, !!0]],
       [[!!0, !!1, !!1, !!0], [!!0, !!1, !!1, !!0], [!!0, !!0, !!0, !!0]],
       [[!!0, !!1, !!1, !!0], [!!0, !!1, !!1, !!0], [!!0, !!0, !!0, !!0]],
     ]),
-    new GamePiece(new GameSlot('#00FF21'), [
+    new GamePieceData(new GameSlot('#00FF21'), [
       // green s
-      GamePiece.flip([[!!0, !!1, !!1], [!!1, !!1, !!0], [!!0, !!0, !!0]]),
-      GamePiece.flip([[!!0, !!1, !!0], [!!0, !!1, !!1], [!!0, !!0, !!1]]),
-      GamePiece.flip([[!!0, !!0, !!0], [!!0, !!1, !!1], [!!1, !!1, !!0]]),
-      GamePiece.flip([[!!1, !!0, !!0], [!!1, !!1, !!0], [!!0, !!1, !!0]]),
+      GamePieceData.flip([[!!0, !!1, !!1], [!!1, !!1, !!0], [!!0, !!0, !!0]]),
+      GamePieceData.flip([[!!0, !!1, !!0], [!!0, !!1, !!1], [!!0, !!0, !!1]]),
+      GamePieceData.flip([[!!0, !!0, !!0], [!!0, !!1, !!1], [!!1, !!1, !!0]]),
+      GamePieceData.flip([[!!1, !!0, !!0], [!!1, !!1, !!0], [!!0, !!1, !!0]]),
     ]),
-    new GamePiece(new GameSlot('#FF0000'), [
+    new GamePieceData(new GameSlot('#FF0000'), [
       // red s
-      GamePiece.flip([[!!1, !!1, !!0], [!!0, !!1, !!1], [!!0, !!0, !!0]]),
-      GamePiece.flip([[!!0, !!0, !!1], [!!0, !!1, !!1], [!!0, !!1, !!0]]),
-      GamePiece.flip([[!!0, !!0, !!0], [!!1, !!1, !!0], [!!0, !!1, !!1]]),
-      GamePiece.flip([[!!1, !!0, !!0], [!!1, !!1, !!0], [!!0, !!1, !!0]]),
+      GamePieceData.flip([[!!1, !!1, !!0], [!!0, !!1, !!1], [!!0, !!0, !!0]]),
+      GamePieceData.flip([[!!0, !!0, !!1], [!!0, !!1, !!1], [!!0, !!1, !!0]]),
+      GamePieceData.flip([[!!0, !!0, !!0], [!!1, !!1, !!0], [!!0, !!1, !!1]]),
+      GamePieceData.flip([[!!1, !!0, !!0], [!!1, !!1, !!0], [!!0, !!1, !!0]]),
     ]),
-    new GamePiece(new GameSlot('#00FFFF'), [
+    new GamePieceData(new GameSlot('#00FFFF'), [
       // cyan l
-      GamePiece.flip([[!!0, !!0, !!0, !!0], [!!1, !!1, !!1, !!1], [!!0, !!0, !!0, !!0], [!!0, !!0, !!0, !!0]]),
-      GamePiece.flip([[!!0, !!0, !!1, !!0], [!!0, !!0, !!1, !!0], [!!0, !!0, !!1, !!0], [!!0, !!0, !!1, !!0]]),
-      GamePiece.flip([[!!0, !!0, !!0, !!0], [!!0, !!0, !!0, !!0], [!!1, !!1, !!1, !!1], [!!0, !!0, !!0, !!0]]),
-      GamePiece.flip([[!!0, !!1, !!0, !!0], [!!0, !!1, !!0, !!0], [!!0, !!1, !!0, !!0], [!!0, !!1, !!0, !!0]]),
+      GamePieceData.flip([[!!0, !!0, !!0, !!0], [!!1, !!1, !!1, !!1], [!!0, !!0, !!0, !!0], [!!0, !!0, !!0, !!0]]),
+      GamePieceData.flip([[!!0, !!0, !!1, !!0], [!!0, !!0, !!1, !!0], [!!0, !!0, !!1, !!0], [!!0, !!0, !!1, !!0]]),
+      GamePieceData.flip([[!!0, !!0, !!0, !!0], [!!0, !!0, !!0, !!0], [!!1, !!1, !!1, !!1], [!!0, !!0, !!0, !!0]]),
+      GamePieceData.flip([[!!0, !!1, !!0, !!0], [!!0, !!1, !!0, !!0], [!!0, !!1, !!0, !!0], [!!0, !!1, !!0, !!0]]),
     ]),
-    new GamePiece(new GameSlot('#B200FF'), [
+    new GamePieceData(new GameSlot('#B200FF'), [
       // purple t
-      GamePiece.flip([[!!0, !!1, !!0], [!!1, !!1, !!1], [!!0, !!0, !!0]]),
-      GamePiece.flip([[!!0, !!1, !!0], [!!0, !!1, !!1], [!!0, !!1, !!0]]),
-      GamePiece.flip([[!!0, !!0, !!0], [!!1, !!1, !!1], [!!0, !!1, !!0]]),
-      GamePiece.flip([[!!0, !!1, !!0], [!!1, !!1, !!0], [!!0, !!1, !!0]]),
+      GamePieceData.flip([[!!0, !!1, !!0], [!!1, !!1, !!1], [!!0, !!0, !!0]]),
+      GamePieceData.flip([[!!0, !!1, !!0], [!!0, !!1, !!1], [!!0, !!1, !!0]]),
+      GamePieceData.flip([[!!0, !!0, !!0], [!!1, !!1, !!1], [!!0, !!1, !!0]]),
+      GamePieceData.flip([[!!0, !!1, !!0], [!!1, !!1, !!0], [!!0, !!1, !!0]]),
     ]),
   ];
 
@@ -288,23 +398,13 @@ export class GamePiece implements IGamePiece {
     return bbox;
   }
 
-  currentSlot: number = 0;
-
   constructor(public gameSlot: GameSlot, public slots: boolean[][][]) {}
 
-  get slot(): boolean[][] {
-    return this.slots[this.currentSlot];
-  }
-
-  set slot(piece: boolean[][]) {
-    throw new Error('Cannot set slot.');
+  slot(rotation: PieceRotation): boolean[][] {
+    return this.slots[rotation];
   }
 
   get color(): string {
     return this.gameSlot.color;
-  }
-
-  set color(color: string) {
-    throw new Error('Cannot set color.');
   }
 }
