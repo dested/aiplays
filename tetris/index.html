@@ -3,41 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>AI Plays: TETRIS</title>
-
 </head>
 <body>
-<div style="float:left;">
-    <button onclick="runCode()">Run</button>
-    <div id="container" style="width:800px;height:600px;border:1px solid grey"></div>
-    <textarea id="console" style="width:800px;height:200px;"></textarea>
-</div>
+<div id="main"></div>
+<script src="main.js"></script>
 
-<div style="float:right;">
-    <canvas id="board"></canvas>
-</div>
-<script src="libs/jquery.js"></script>
-<script src="libs/monaco/min/vs/loader.js"></script>
-<script src="libs/typescript.js"></script>
-<script src="libs/system.js"></script>
-<script>
-
-    System.config({
-        packages: {
-            'app': {main: 'main.ts', defaultExtension: 'ts', meta: {'*': {format: 'esm'}}},
-        },
-        transpiler: 'typescript',
-        baseURL: '',
-        typescriptOptions: {
-            "module": "system",
-            "experimentalDecorators": true,
-            "emitDecoratorMetadata": true,
-            "removeComments": false,
-            "target": "es5",
-            "sourceMap": true,
-            "inlineSourceMap": true
-        }
-    });
-    System.import('app');
-</script>
 </body>
 </html>
