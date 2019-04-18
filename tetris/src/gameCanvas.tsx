@@ -1,20 +1,27 @@
 import * as keyboardJS from 'keyboardjs';
+import {inject, observer} from 'mobx-react';
+import * as React from 'react';
+import {RouteComponentProps} from 'react-router';
 import {GameLogic} from './store/game/gameLogic';
 import {gameStore} from './store/game/store';
-declare var exports: any;
+import {MainStoreName, MainStoreProps} from './store/main/store';
 
-export class GameCanvas {
-  private canvas: HTMLCanvasElement;
-  private context: CanvasRenderingContext2D;
+interface Props extends MainStoreProps {}
+interface State {}
 
-  private blockSize = 32;
+@inject(MainStoreName)
+@observer
+export class GameCanvas extends React.Component<Props, State> {
+  private canvas = React.createRef<HTMLCanvasElement>();
+  private canvasContext: CanvasRenderingContext2D;
 
-  constructor() {
-    this.canvas = document.getElementById('board') as HTMLCanvasElement;
-    this.context = this.canvas.getContext('2d');
+  static blockSize = 32;
 
-    this.canvas.width = (GameLogic.instance.boardWidth + 2) * this.blockSize;
-    this.canvas.height = (GameLogic.instance.boardHeight + 2) * this.blockSize;
+  componentDidMount() {
+    this.canvasContext = this.canvas.current.getContext('2d');
+
+    this.canvas.current.width = (GameLogic.instance.boardWidth + 2) * GameCanvas.blockSize;
+    this.canvas.current.height = (GameLogic.instance.boardHeight + 2) * GameCanvas.blockSize;
     GameLogic.instance.reset();
 
     let leftDown = false;
@@ -93,11 +100,15 @@ export class GameCanvas {
       }
     }, tetrisTickDuration / 5);
 
-    this.render();
+    this.canvasRender();
   }
 
   render() {
-    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    return <canvas ref={this.canvas} />;
+  }
+
+  canvasRender() {
+    this.canvasContext.clearRect(0, 0, this.canvas.current.width, this.canvas.current.height);
 
     const boardHeight = GameLogic.instance.boardHeight;
     const boardWidth = GameLogic.instance.boardWidth;
@@ -108,7 +119,7 @@ export class GameCanvas {
         let drawBlock = false;
         let color: string;
         if (x === -1 || x === boardWidth || y === -1 || y === boardHeight) {
-          this.context.fillStyle = 'black';
+          this.canvasContext.fillStyle = 'black';
           drawBlock = true;
         } else {
           let slot: GameSlot;
@@ -130,31 +141,32 @@ export class GameCanvas {
         }
 
         if (drawBlock) {
+          const blockSize = GameCanvas.blockSize;
           if (color == null) {
-            this.context.fillRect((x + 1) * this.blockSize, (y + 1) * this.blockSize, this.blockSize, this.blockSize);
+            this.canvasContext.fillRect((x + 1) * blockSize, (y + 1) * blockSize, blockSize, blockSize);
           } else {
             const colorPad = 5;
-            this.context.fillStyle = GameCanvas.colorLuminance(color, -0.3);
-            this.context.fillRect((x + 1) * this.blockSize, (y + 1) * this.blockSize, this.blockSize, this.blockSize);
-            this.context.fillStyle = color;
-            this.context.fillRect(
-              (x + 1) * this.blockSize + colorPad,
-              (y + 1) * this.blockSize + colorPad,
-              this.blockSize - colorPad * 2,
-              this.blockSize - colorPad * 2
+            this.canvasContext.fillStyle = GameCanvas.colorLuminance(color, -0.3);
+            this.canvasContext.fillRect((x + 1) * blockSize, (y + 1) * blockSize, blockSize, blockSize);
+            this.canvasContext.fillStyle = color;
+            this.canvasContext.fillRect(
+              (x + 1) * blockSize + colorPad,
+              (y + 1) * blockSize + colorPad,
+              blockSize - colorPad * 2,
+              blockSize - colorPad * 2
             );
           }
           if (color == null) {
-            this.context.strokeStyle = 'white';
+            this.canvasContext.strokeStyle = 'white';
           } else {
-            this.context.strokeStyle = 'black';
+            this.canvasContext.strokeStyle = 'black';
           }
-          this.context.strokeRect((x + 1) * this.blockSize, (y + 1) * this.blockSize, this.blockSize, this.blockSize);
+          this.canvasContext.strokeRect((x + 1) * blockSize, (y + 1) * blockSize, blockSize, blockSize);
         }
       }
     }
 
-    window.requestAnimationFrame(() => this.render());
+    window.requestAnimationFrame(() => this.canvasRender());
   }
 
   private static colorLuminance(hex: string, lum: number) {

@@ -92,12 +92,10 @@ export class CodeEditor extends React.Component<Props, State> {
     return (
       <MonacoEditor
         ref={this.editor}
-        width={800}
-        height={600}
         language={'typescript'}
         theme={'vs-dark'}
         value={this.state.code}
-        options={{}}
+        options={{automaticLayout: true}}
         onChange={this.onChange}
       />
     );

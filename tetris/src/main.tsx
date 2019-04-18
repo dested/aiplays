@@ -13,22 +13,16 @@ import {stores} from './store/stores';
 configure({enforceActions: 'always'});
 
 async function main() {
-  function run() {
-    ReactDOM.render(
-      <Provider {...stores}>
-        <HashRouter>
-          <Fragment>
-            <Route exact path="/" component={Builder} />
-          </Fragment>
-        </HashRouter>
-      </Provider>,
-      document.getElementById('main')
-    );
-  }
-
-  run();
-
-  const gameCanvas = new GameCanvas();
+  ReactDOM.render(
+    <Provider {...stores}>
+      <HashRouter>
+        <Fragment>
+          <Route exact path="/" component={Builder} />
+        </Fragment>
+      </HashRouter>
+    </Provider>,
+    document.getElementById('main')
+  );
 }
 
 main();
