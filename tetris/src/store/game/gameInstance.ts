@@ -21,8 +21,16 @@ export class GameInstance implements IGameInstance {
     return gameLogic;
   }
 
-  isBlocked(x: number, y: number): boolean {
-    return !!this.board.slots[x][y];
+  isBlocked(x: number, y: number, includeCurrentPiece?: boolean): boolean {
+    const b = !!this.board.slots[x][y];
+    if (b) {
+      return true;
+    }
+    if (includeCurrentPiece) {
+      const piece = this.getCurrentPiece();
+      return piece.slot[x - piece.x] && piece.slot[x - piece.x][y - piece.y];
+    }
+    return false;
   }
 
   isOnBoard(x: number, y: number): boolean {

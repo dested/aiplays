@@ -3,7 +3,7 @@ import {GamePieceData, GamePieceInstance} from './gameCanvas';
 interface IGameInstance {
   clone(): IGameInstance;
   moveLeft(): boolean;
-  isBlocked(x: number, y: number): boolean;
+  isBlocked(x: number, y: number, includeCurrentPiece?: boolean): boolean;
   isOnBoard(x: number, y: number): boolean;
   swap(): void;
   getPiece(index: number): IGamePieceInstance;

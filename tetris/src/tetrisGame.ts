@@ -1,67 +1,97 @@
 import {IGameInstance, IGamePieceInstance} from './tetris';
 
+type Action = 'initial' | 'down' | 'left' | 'right' | 'rotate';
+type Score = {score: number; action: Action; firstAction: Action; game: IGameInstance};
+
 export class TetrisAI {
   constructor(private game: IGameInstance) {}
 
   tick() {
     console.clear();
-    const scores: number[] = [];
-    for (let i = 0; i < 4; i++) {
-      const testGame = this.game.clone();
-      testGame.rotatePiece();
-      for (let y = testGame.boardHeight - 1; y >= 0; y--) {
-        for (let x = 0; x < testGame.boardWidth; x++) {
-          if (this.testPiece(testGame, x, y)) {
-            return;
+    let scores: Score[] = [{score: 0, action: 'initial', firstAction: 'initial', game: this.game.clone()}];
+    let tries = 0;
+    while (tries < 4) {
+      const newScores: Score[] = [];
+      for (const score of scores) {
+        if (score.game.getCurrentPiece().canMoveDown()) {
+          score.game.moveDown();
+          const newScore = this.getScore(score.game);
+          if (score.score >= newScore) {
+            newScores.push({
+              score: newScore,
+              action: 'down',
+              firstAction: tries === 0 ? 'down' : score.firstAction,
+              game: score.game.clone(),
+            });
+          }
+        }
+        if (score.game.getCurrentPiece().canMoveLeft()) {
+          score.game.moveLeft();
+          const newScore = this.getScore(score.game);
+          if (score.score >= newScore) {
+            newScores.push({
+              score: newScore,
+              action: 'left',
+              firstAction: tries === 0 ? 'left' : score.firstAction,
+              game: score.game.clone(),
+            });
+          }
+        }
+        if (score.game.getCurrentPiece().canMoveRight()) {
+          score.game.moveRight();
+          const newScore = this.getScore(score.game);
+          if (score.score >= newScore) {
+            newScores.push({
+              score: newScore,
+              action: 'right',
+              firstAction: tries === 0 ? 'right' : score.firstAction,
+              game: score.game.clone(),
+            });
+          }
+        }
+        if (score.game.getCurrentPiece().canRotate()) {
+          score.game.rotatePiece();
+          const newScore = this.getScore(score.game);
+          if (score.score >= newScore) {
+            newScores.push({
+              score: newScore,
+              action: 'rotate',
+              firstAction: tries === 0 ? 'rotate' : score.firstAction,
+              game: score.game.clone(),
+            });
           }
         }
       }
+      scores = newScores.sort((a, b) => b.score - a.score);
+      tries++;
+    }
+    switch (scores[0].firstAction) {
+      case 'down':
+        this.game.moveDown();
+        break;
+      case 'left':
+        this.game.moveLeft();
+        break;
+      case 'right':
+        this.game.moveRight();
+        break;
+      case 'rotate':
+        this.game.rotatePiece();
+        break;
     }
   }
 
-  testPiece(instance: IGameInstance, x: number, y: number) {
-    const piece = instance.getCurrentPiece();
-    if (this.pieceFits(piece, x, y)) {
-      let blocked = false;
-      for (let subY = y - 1; subY >= 0; subY--) {
-        if (!this.pieceFits(piece, x, subY)) {
-          blocked = true;
-          break;
+  private getScore(game: IGameInstance): number {
+    let score = 0;
+    for (let py = game.boardHeight; py >= 0; py--) {
+      for (let px = 0; px < game.boardWidth; px++) {
+        if (game.isBlocked(px, py, true)) {
+          score += py;
+        } else {
+          score -= py * 1.1;
         }
       }
-      if (!blocked) {
-        this.moveTowards(x, y);
-        return true;
-      }
     }
-    return false;
-  }
-
-  pieceFits(piece: IGamePieceInstance, x: number, y: number) {
-    for (let px = 0; px < piece.slot.length; px++) {
-      for (let py = 0; py < piece.slot[px].length; py++) {
-        if (piece.slot[px][py]) {
-          if (!this.game.isOnBoard(x + px, y + py) || this.game.isBlocked(x + px, y + py)) {
-            return false;
-          }
-        }
-      }
-    }
-    return true;
-  }
-
-  moveTowards(x: number, y: number) {
-    const position = this.game.getPosition();
-    console.log(x, y, position.x, position.y);
-    if (x === position.x) {
-      this.game.drop();
-      return;
-    }
-
-    if (x < position.x) {
-      this.game.moveLeft();
-    } else if (x > position.x) {
-      this.game.moveRight();
-    }
+    return score;
   }
 }

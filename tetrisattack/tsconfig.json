@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "noEmitOnError": false,
+    "experimentalDecorators": true,
+    "allowUnreachableCode": true,
+    "strict": true,
+    "jsx": "react",
+    "target": "es2015",
+    "lib": [
+      "esnext",
+      "dom",
+      "es2017",
+      "esnext.asynciterable"
+    ],
+    "module": "commonjs",
+    "inlineSourceMap": true,
+    "pretty": true,
+    "noEmit": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true
+  }
+}
