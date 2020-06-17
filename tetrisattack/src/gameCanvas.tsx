@@ -146,10 +146,10 @@ export class GameCanvas extends React.Component<Props, State> {
     this.canvasContext.save();
 
     try {
-      this.canvasContext.translate(0, board.boardOffsetPosition);
+      this.canvasContext.translate(0, boardHeight * blockSize - board.boardOffsetPosition);
       this.canvasContext.lineWidth = 1;
 
-      for (let y = 0; y < boardHeight; y++) {
+      for (let y = board.topMostRow; y < board.lowestVisibleRow + 1; y++) {
         const row = board.rows[y];
         for (let x = 0; x < boardWidth; x++) {
           const tile = row.tiles[x];
