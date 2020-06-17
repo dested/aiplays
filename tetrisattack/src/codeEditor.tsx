@@ -1,4 +1,4 @@
-import * as keyboardJS from 'keyboardjs';
+import keyboardJS from 'keyboardjs';
 import IStandaloneCodeEditor = monaco.editor.IStandaloneCodeEditor;
 import {inject, observer} from 'mobx-react';
 import * as monaco from 'monaco-editor';
@@ -16,6 +16,7 @@ interface State {
 }
 
 export class CodeEditor extends React.Component<Props, State> {
+  private tetrisDTS?: ts.SourceFile;
   constructor(props: Props) {
     super(props);
     this.state = {code: ''};
@@ -26,13 +27,24 @@ export class CodeEditor extends React.Component<Props, State> {
       this.runCode();
       return false;
     });
-
-    const text = await (await fetch('./src/tetris-attack.d.ts')).text();
+    const libText = await (await fetch('./src/tetris-attack.d.ts')).text();
+    this.tetrisDTS = ts.createSourceFile('tetris-attack.d.ts', libText, ts.ScriptTarget.ES5);
     let code = ''; // localStorage.getItem('tetris-attack-script');
     if (!code) {
       code = await (await fetch('./src/tetrisAttackGame.ts')).text();
     }
-    monaco.languages.typescript.typescriptDefaults.addExtraLib(text, './tetris-attack.d.ts');
+
+    monaco.languages.typescript.typescriptDefaults.addExtraLib(
+      libText,
+      'file:///node_modules/@types/tetris-attack.d.ts'
+    );
+    /*
+    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+      target: monaco.languages.typescript.ScriptTarget.ES2020,
+      module: monaco.languages.typescript.ModuleKind.CommonJS,
+      allowNonTsExtensions: true,
+    });
+*/
 
     this.setState({code});
     this.runCode();
@@ -48,7 +60,13 @@ export class CodeEditor extends React.Component<Props, State> {
       {},
       {
         getSourceFile: (fileName) => {
-          return fileName.indexOf('game.ts') === 0 ? sourceFile : undefined;
+          switch (fileName) {
+            case 'game.ts':
+              return sourceFile;
+            case 'tetris-attack.d.ts':
+              return this.tetrisDTS;
+          }
+          return undefined;
         },
         writeFile: (fileName, filText) => {
           outputText = filText;
@@ -69,15 +87,21 @@ export class CodeEditor extends React.Component<Props, State> {
           return '\r\n';
         },
         fileExists: (fileName) => {
-          return fileName === 'game.ts';
+          switch (fileName) {
+            case 'game.ts':
+              return true;
+            case 'tetris-attack.d.ts':
+              return true;
+          }
+          return false;
         },
-        readFile: () => {
+        readFile: (c) => {
           return '';
         },
-        directoryExists: () => {
+        directoryExists: (c) => {
           return true;
         },
-        getDirectories: () => {
+        getDirectories: (c) => {
           return [];
         },
       }

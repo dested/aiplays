@@ -27,15 +27,13 @@ export class GameBoard {
   }
 
   boardOffsetPosition = blockSize * (boardHeight / 4);
-  speed = 50;
+  speed = 58;
 
   tickCount = 0;
 
   tick() {
     if (this.tickCount++ % (60 - this.speed) === 0) {
       this.boardOffsetPosition += 1;
-      /*      this.visibleYs[0] = Math.ceil(this.boardOffsetPosition / blockSize);
-      this.visibleYs[1] = Math.ceil(this.boardOffsetPosition / blockSize) + 12;*/
     }
 
     if (this.tickCount % 10 === 0) {
@@ -44,10 +42,13 @@ export class GameBoard {
         if (row.isEmpty()) {
           this.topMostRow = y;
         } else {
+          if (boardHeight * blockSize - this.boardOffsetPosition - this.rows[this.topMostRow].tiles[0].drawY < 0) {
+            debugger;
+            alert('dead');
+          }
           break;
         }
       }
-
       for (let i = 0; i < 15; i++) {
         if (!this.rows[i + this.topMostRow]) {
           this.rows[i + this.topMostRow] = new TileRow(this, i + this.topMostRow);
@@ -56,10 +57,11 @@ export class GameBoard {
       }
     }
 
-    for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
+    for (let y = this.lowestVisibleRow; y >= this.topMostRow; y--) {
       const row = this.rows[y];
-      row.tick();
+      if (row) row.tick();
     }
+
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
       const row = this.rows[y];
       for (const tile of row.tiles) {

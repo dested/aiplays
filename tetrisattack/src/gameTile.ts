@@ -31,10 +31,12 @@ export class GameTile {
   drop(newY: number) {
     this.newY = newY;
     this.swappable = false;
-    this.dropTickCount = 1;
+    this.dropTickCount = AnimationConstants.dropStallTicks;
   }
 
   tick() {
+    this.drawX = this.x * blockSize;
+    this.drawY = this.y * blockSize;
     if (this.swapTickCount > 0) {
       this.swapTickCount--;
       const swapPercent = 1 - this.swapTickCount / AnimationConstants.swapTicks;
@@ -48,9 +50,11 @@ export class GameTile {
       this.dropTickCount--;
     }
     if (this.swapTickCount === 0 && this.newX !== undefined) {
-      this.row.tiles[this.newX] = this;
-      this.x = this.newX;
-      this.drawX = this.x * blockSize;
+      if (this.x < this.newX) {
+        const newCol = this.row.tiles[this.newX].color;
+        this.row.tiles[this.newX].color = this.color;
+        this.color = newCol;
+      }
       this.newX = undefined;
       this.swappable = true;
     }

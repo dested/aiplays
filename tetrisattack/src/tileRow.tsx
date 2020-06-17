@@ -40,8 +40,7 @@ export class TileRow {
   }
 
   tick() {
-    const rowTiles = [...this.tiles];
-    for (const tile of rowTiles) {
+    for (const tile of this.tiles) {
       tile.tick();
     }
   }

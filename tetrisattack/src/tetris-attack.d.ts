@@ -1,7 +1,3 @@
-import {AnimationConstants, blockSize} from './store/game/gameInstance';
-import {TileRow} from './tileRow';
-
-
 export interface IGameInstance {
   clone(): IGameInstance;
   moveLeft(): boolean;

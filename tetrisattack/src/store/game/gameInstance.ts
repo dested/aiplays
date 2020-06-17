@@ -30,7 +30,7 @@ export class GameInstance implements IGameInstance {
   }
 
   moveDown() {
-    if (this.board.cursor.y >= boardHeight - 2) {
+    if (this.board.cursor.y >= this.board.lowestVisibleRow - 1) {
       return false;
     }
     this.board.cursor.y++;

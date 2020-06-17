@@ -1,4 +1,4 @@
-import * as keyboardJS from 'keyboardjs';
+import keyboardJS from 'keyboardjs';
 import {inject, observer} from 'mobx-react';
 import * as React from 'react';
 import {blockSize, boardHeight, boardWidth, GameInstance} from './store/game/gameInstance';
@@ -30,7 +30,6 @@ export class GameCanvas extends React.Component<Props, State> {
     let downDown = false;
     let upDown = false;
     let enterDown = false;
-
     keyboardJS.bind(
       'left',
       () => {
@@ -151,6 +150,7 @@ export class GameCanvas extends React.Component<Props, State> {
 
       for (let y = board.topMostRow; y < board.lowestVisibleRow + 1; y++) {
         const row = board.rows[y];
+        if (!row) continue;
         for (let x = 0; x < boardWidth; x++) {
           const tile = row.tiles[x];
           let color: string;
