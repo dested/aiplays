@@ -1,11 +1,8 @@
-import {TileRow} from './tileRow';
 import {AnimationConstants, tileSize} from './store/game/gameInstance';
-import {GameCanvas} from './gameCanvas';
-import {PopAnimation} from './gameBoard';
 import {unreachable} from './types/unreachable';
+import {GameBoard} from './gameBoard';
 
-export type TileColor = 'green' | 'purple' | 'red' | 'yellow' | 'teal' | 'blue' | 'empty';
-export type TileColorWithoutEmpty = Exclude<TileColor, 'empty'>;
+export type TileColor = 'green' | 'purple' | 'red' | 'yellow' | 'teal' | 'blue';
 
 export class GameTile {
   private dropBounceTick = 0;
@@ -13,45 +10,31 @@ export class GameTile {
   private dropState?: 'stalled' | 'falling';
 
   draw(context: CanvasRenderingContext2D) {
-    if (this.color === 'empty') return;
-
     switch (this.drawType) {
       case 'matched':
-        context.drawImage(this.row.gameBoard.assets!.regular[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        context.drawImage(this.gameBoard.assets!.regular[this.color], this.drawX, this.drawY, tileSize, tileSize);
         break;
       case 'matched-blink':
         context.fillStyle = '#D6D7D6';
         context.fillRect(this.drawX, this.drawY, tileSize, tileSize);
-        context.drawImage(
-          this.row.gameBoard.assets!.transparent[this.color],
-          this.drawX,
-          this.drawY,
-          tileSize,
-          tileSize
-        );
+        context.drawImage(this.gameBoard.assets!.transparent[this.color], this.drawX, this.drawY, tileSize, tileSize);
         break;
       case 'popping':
-        context.drawImage(this.row.gameBoard.assets!.popped[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        context.drawImage(this.gameBoard.assets!.popped[this.color], this.drawX, this.drawY, tileSize, tileSize);
         break;
       case 'popped':
         break;
       case 'bounce-low':
-        context.drawImage(this.row.gameBoard.assets!.bounceLow[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        context.drawImage(this.gameBoard.assets!.bounceLow[this.color], this.drawX, this.drawY, tileSize, tileSize);
         break;
       case 'bounce-high':
-        context.drawImage(
-          this.row.gameBoard.assets!.bounceHigh[this.color],
-          this.drawX,
-          this.drawY,
-          tileSize,
-          tileSize
-        );
+        context.drawImage(this.gameBoard.assets!.bounceHigh[this.color], this.drawX, this.drawY, tileSize, tileSize);
         break;
       case 'bounce-mid':
-        context.drawImage(this.row.gameBoard.assets!.bounceMid[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        context.drawImage(this.gameBoard.assets!.bounceMid[this.color], this.drawX, this.drawY, tileSize, tileSize);
         break;
       case 'regular':
-        context.drawImage(this.row.gameBoard.assets!.regular[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        context.drawImage(this.gameBoard.assets!.regular[this.color], this.drawX, this.drawY, tileSize, tileSize);
         break;
 
       default:
@@ -67,7 +50,7 @@ export class GameTile {
   }
 
   constructor(
-    public row: TileRow,
+    public gameBoard: GameBoard,
     public color: TileColor,
     public swappable: boolean,
     public x: number,
@@ -124,11 +107,7 @@ export class GameTile {
         this.drawX = this.x * tileSize - tileSize * swapPercent;
       }
     } else if (this.swapTickCount === 0 && this.newX !== undefined) {
-      if (this.x < this.newX) {
-        const newCol = this.row.tiles[this.newX].color;
-        this.row.tiles[this.newX].color = this.color;
-        this.color = newCol;
-      }
+      this.x = this.newX;
       this.newX = undefined;
       this.swappable = true;
     }
@@ -163,16 +142,14 @@ export class GameTile {
     if (this.dropTickCount > 0) {
       this.dropTickCount--;
     } else if (this.dropTickCount === 0 && this.newY !== undefined) {
-      const gameTile = this.row.gameBoard.rows[this.newY].tiles[this.x];
-      if (this.row.gameBoard.rows[this.newY + 1].tiles[this.x].color !== 'empty') {
-        gameTile.startBounce();
-        gameTile.dropState = undefined;
+      if (this.gameBoard.getTile(this.x, this.newY + 1) !== undefined) {
+        this.startBounce();
+        this.dropState = undefined;
       } else {
-        gameTile.dropState = 'falling';
+        this.dropState = 'falling';
       }
-      gameTile.color = this.color;
+      this.y = this.newY;
       this.dropState = undefined;
-      this.color = 'empty';
       this.newY = undefined;
       this.swappable = true;
     }

@@ -22,7 +22,7 @@ export class GameInstance implements IGameInstance {
 
   clone(): IGameInstance {
     const gameLogic = new GameInstance();
-    gameLogic.board = this.board.clone(gameLogic);
+    // gameLogic.board = this.board.clone(gameLogic);
     return gameLogic;
   }
 

@@ -1,9 +1,8 @@
 import {IGameInstance} from './tetris-attack';
-import {GameCanvas} from './gameCanvas';
-import {TileRow} from './tileRow';
-import {tileSize, boardHeight, AnimationConstants} from './store/game/gameInstance';
-import {GameTile, TileColor, TileColorWithoutEmpty} from './gameTile';
+import {tileSize, boardHeight, AnimationConstants, boardWidth} from './store/game/gameInstance';
+import {GameTile, TileColor} from './gameTile';
 import {unreachable} from './types/unreachable';
+import {randomElement} from './utils/utilts';
 
 export type PopAnimation = {
   queuedPops: GameTile[];
@@ -12,26 +11,29 @@ export type PopAnimation = {
   matchTimer: number;
 };
 
+export const GameTiles: GameTile['color'][] = ['red', 'blue', 'yellow', 'teal', 'purple'];
+
 export class GameBoard {
-  rows: TileRow[] = [];
+  constructor() {
+    for (let i = 0; i < 15; i++) {
+      if (!this.getTile(0, i)) {
+        this.fillRandom(i);
+      }
+    }
+  }
+  tiles: GameTile[] = [];
   cursor: {x: number; y: number} = {x: 0, y: 0};
   popAnimations: PopAnimation[] = [];
 
-  clone(gameInstance: IGameInstance) {
-    const gameBoard = new GameBoard();
-    gameBoard.rows = this.rows.map((t) => t.clone(gameBoard));
-    return gameBoard;
-  }
-
   topMostRow = 0;
   get lowestVisibleRow() {
-    for (let y = this.topMostRow; y < this.rows.length; y++) {
-      const row = this.rows[y];
-      if (this.boardOffsetPosition - row.tiles[0].drawY <= 0) {
-        return y - 1;
+    let lowestY = Number.MAX_SAFE_INTEGER;
+    for (const tile of this.tiles) {
+      if (this.boardOffsetPosition - tile.drawY <= 0) {
+        lowestY = Math.min(lowestY, tile.y - 1);
       }
     }
-    return this.rows.length;
+    return lowestY;
   }
 
   boardOffsetPosition = tileSize * (boardHeight / 2);
@@ -51,7 +53,7 @@ export class GameBoard {
     }
 
     if (this.tickCount % 10 === 0) {
-      for (let y = this.topMostRow; y < this.rows.length; y++) {
+      /*for (let y = this.topMostRow; y < this.rows.length; y++) {
         const row = this.rows[y];
         if (row.isEmpty()) {
           this.topMostRow = y;
@@ -61,18 +63,19 @@ export class GameBoard {
           }
           break;
         }
-      }
+      }*/
       for (let i = 0; i < 15; i++) {
-        if (!this.rows[i + this.topMostRow]) {
-          this.rows[i + this.topMostRow] = new TileRow(this, i + this.topMostRow);
-          this.rows[i + this.topMostRow].fillRandom();
+        if (!this.getTile(0, this.topMostRow + i)) {
+          this.fillRandom(this.topMostRow + i);
         }
       }
     }
 
     for (let y = this.lowestVisibleRow; y >= this.topMostRow; y--) {
-      const row = this.rows[y];
-      if (row) row.tick();
+      for (let x = 0; x < boardWidth; x++) {
+        const tile = this.getTile(x, y);
+        tile?.tick();
+      }
     }
 
     for (const popAnimation of this.popAnimations) {
@@ -138,9 +141,7 @@ export class GameBoard {
             }
             break;
           case 'postPop':
-            tile.drawType = 'regular';
-            tile.color = 'empty';
-            tile.swappable = true;
+            this.tiles.remove(tile);
             break;
           case undefined:
             break;
@@ -150,11 +151,11 @@ export class GameBoard {
 
     const queuedPops: GameTile[] = [];
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
-      const row = this.rows[y];
-      for (const tile of row.tiles) {
-        if (!(tile.swappable && tile.newY === undefined && tile.color !== 'empty')) continue;
+      for (let x = 0; x < boardWidth; x++) {
+        const tile = this.getTile(x, y);
+        if (!tile || !tile.swappable || tile.newY !== undefined) continue;
         let total: number;
-        if (tile.x < row.tiles.length - 1) {
+        if (tile.x < boardWidth - 1) {
           total = this.testTile(queuedPops, tile.color, 'right', tile.x + 1, tile.y, 1);
           if (total >= 3) {
             tile.pop();
@@ -179,17 +180,15 @@ export class GameBoard {
     }
 
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
-      const row = this.rows[y];
-      for (const tile of row.tiles) {
-        if (tile.droppable) {
-          if (
-            this.rows[tile.y + 1].tiles[tile.x].color === 'empty' &&
-            this.rows[tile.y].tiles[tile.x].color !== 'empty'
-          ) {
+      for (let x = 0; x < boardWidth; x++) {
+        const tile = this.getTile(x, y);
+        if (tile && tile.droppable) {
+          if (!this.getTile(tile.x, tile.y + 1)) {
             const tilesToDrop: GameTile[] = [];
             for (let upY = tile.y; upY >= this.topMostRow; upY--) {
-              if (this.rows[upY].tiles[tile.x].color !== 'empty' && this.rows[upY].tiles[tile.x].droppable) {
-                tilesToDrop.push(this.rows[upY].tiles[tile.x]);
+              const tileUp = this.getTile(tile.x, upY);
+              if (tileUp && tileUp.droppable) {
+                tilesToDrop.push(tileUp);
               } else {
                 break;
               }
@@ -204,11 +203,6 @@ export class GameBoard {
     }
   }
 
-  swap() {
-    const row = this.rows[this.cursor.y];
-    return row.swap(this.cursor.x);
-  }
-
   private testTile(
     queuedPops: GameTile[],
     color: GameTile['color'],
@@ -217,9 +211,7 @@ export class GameBoard {
     y: number,
     count: number
   ): number {
-    const gameRow = this.rows[y];
-    if (!gameRow) return count;
-    const gameTile = gameRow.tiles[x];
+    const gameTile = this.getTile(x, y);
     if (!gameTile || !gameTile.swappable || gameTile.newY !== undefined) return count;
 
     switch (direction) {
@@ -269,18 +261,18 @@ export class GameBoard {
   }
 
   assets?: {
-    regular: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
-    bounceLow: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
-    bounceHigh: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
-    bounceMid: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
-    dark: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
-    popped: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
-    transparent: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
-    black: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
+    regular: {[color in TileColor]: HTMLCanvasElement};
+    bounceLow: {[color in TileColor]: HTMLCanvasElement};
+    bounceHigh: {[color in TileColor]: HTMLCanvasElement};
+    bounceMid: {[color in TileColor]: HTMLCanvasElement};
+    dark: {[color in TileColor]: HTMLCanvasElement};
+    popped: {[color in TileColor]: HTMLCanvasElement};
+    transparent: {[color in TileColor]: HTMLCanvasElement};
+    black: {[color in TileColor]: HTMLCanvasElement};
   };
 
   loadAssetSheet(assetSheet: HTMLCanvasElement[][]) {
-    function convertToColor(assets: HTMLCanvasElement[]): {[color in TileColorWithoutEmpty]: HTMLCanvasElement} {
+    function convertToColor(assets: HTMLCanvasElement[]): {[color in TileColor]: HTMLCanvasElement} {
       return {
         green: assets[0],
         purple: assets[1],
@@ -301,5 +293,37 @@ export class GameBoard {
       transparent: convertToColor(assetSheet[6]),
       black: convertToColor(assetSheet[7]),
     };
+  }
+
+  fillRandom(y: number) {
+    for (let x = 0; x < boardWidth; x++) {
+      this.tiles.push(new GameTile(this, randomElement(GameTiles), true, x, y));
+    }
+  }
+
+  isEmpty(y: number) {
+    for (let x = 0; x < boardWidth; x++) {
+      if (this.getTile(x, y)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  swap(): boolean {
+    const x = this.cursor.x;
+    const y = this.cursor.y;
+    const tile = this.getTile(x, y);
+    const tileRight = this.getTile(x + 1, y);
+    if ((!tile || tile.swappable) && (!tileRight || tileRight.swappable)) {
+      tile?.swap(x + 1);
+      tileRight?.swap(x);
+      return true;
+    }
+    return false;
+  }
+
+  getTile(x: number, y: number) {
+    return this.tiles.find((a) => a.x === x && a.y === y);
   }
 }

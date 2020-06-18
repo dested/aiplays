@@ -180,11 +180,9 @@ export class GameCanvas extends React.Component<Props, State> {
       this.canvasContext.lineWidth = 1;
 
       for (let y = board.topMostRow; y < board.lowestVisibleRow + 1; y++) {
-        const row = board.rows[y];
-        if (!row) continue;
         for (let x = 0; x < boardWidth; x++) {
-          const tile = row.tiles[x];
-          tile.draw(this.canvasContext);
+          const tile = board.getTile(x, y);
+          if (tile) tile.draw(this.canvasContext);
         }
       }
 
