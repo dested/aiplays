@@ -2,11 +2,14 @@ import {TileRow} from './tileRow';
 import {AnimationConstants, tileSize} from './store/game/gameInstance';
 import {GameCanvas} from './gameCanvas';
 import {PopAnimation} from './gameBoard';
+import {unreachable} from './types/unreachable';
 
 export type TileColor = 'green' | 'purple' | 'red' | 'yellow' | 'teal' | 'blue' | 'empty';
 export type TileColorWithoutEmpty = Exclude<TileColor, 'empty'>;
 
 export class GameTile {
+  private dropBounceTick = 0;
+  private dropBouncePhase?: 'regular' | 'low' | 'high' | 'mid';
   draw(context: CanvasRenderingContext2D) {
     if (this.color === 'empty') return;
 
@@ -30,9 +33,27 @@ export class GameTile {
         break;
       case 'popped':
         break;
-      case undefined:
+      case 'bounce-low':
+        context.drawImage(this.row.gameBoard.assets!.bounceLow[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        break;
+      case 'bounce-high':
+        context.drawImage(
+          this.row.gameBoard.assets!.bounceHigh[this.color],
+          this.drawX,
+          this.drawY,
+          tileSize,
+          tileSize
+        );
+        break;
+      case 'bounce-mid':
+        context.drawImage(this.row.gameBoard.assets!.bounceMid[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        break;
+      case 'regular':
         context.drawImage(this.row.gameBoard.assets!.regular[this.color], this.drawX, this.drawY, tileSize, tileSize);
         break;
+
+      default:
+        throw unreachable(this.drawType);
     }
   }
 
@@ -62,7 +83,15 @@ export class GameTile {
     this.swapTickCount = AnimationConstants.swapTicks;
   }
 
-  drawType?: 'matched' | 'matched-blink' | 'popping' | 'popped';
+  drawType:
+    | 'regular'
+    | 'matched'
+    | 'matched-blink'
+    | 'popping'
+    | 'popped'
+    | 'bounce-low'
+    | 'bounce-high'
+    | 'bounce-mid' = 'regular';
 
   drop(newY: number) {
     this.newY = newY;
@@ -90,10 +119,40 @@ export class GameTile {
       this.newX = undefined;
       this.swappable = true;
     }
+
+    if (this.dropBounceTick > 0) {
+      this.dropBounceTick--;
+    } else if (this.dropBounceTick === 0) {
+      switch (this.dropBouncePhase) {
+        case 'regular':
+          this.dropBounceTick = AnimationConstants.dropBounceTicks;
+          this.dropBouncePhase = 'low';
+          this.drawType = 'bounce-low';
+          break;
+        case 'low':
+          this.dropBounceTick = AnimationConstants.dropBounceTicks;
+          this.dropBouncePhase = 'high';
+          this.drawType = 'bounce-high';
+          break;
+        case 'high':
+          this.dropBounceTick = AnimationConstants.dropBounceTicks;
+          this.dropBouncePhase = 'mid';
+          this.drawType = 'bounce-mid';
+          break;
+        case 'mid':
+          this.dropBounceTick = 0;
+          this.dropBouncePhase = undefined;
+          this.drawType = 'regular';
+          break;
+      }
+    }
+
     if (this.dropTickCount > 0) {
       this.dropTickCount--;
     } else if (this.dropTickCount === 0 && this.newY !== undefined) {
-      this.row.gameBoard.rows[this.newY].tiles[this.x].color = this.color;
+      const gameTile = this.row.gameBoard.rows[this.newY].tiles[this.x];
+      gameTile.startBounce();
+      gameTile.color = this.color;
       this.color = 'empty';
       this.newY = undefined;
       this.swappable = true;
@@ -102,5 +161,10 @@ export class GameTile {
 
   pop() {
     this.swappable = false;
+  }
+
+  private startBounce() {
+    this.dropBounceTick = 1;
+    this.dropBouncePhase = 'regular';
   }
 }

@@ -138,7 +138,7 @@ export class GameBoard {
             }
             break;
           case 'postPop':
-            tile.drawType = undefined;
+            tile.drawType = 'regular';
             tile.color = 'empty';
             tile.swappable = true;
             break;
@@ -281,9 +281,9 @@ export class GameBoard {
 
   assets?: {
     regular: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
-    falling1: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
-    falling2: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
-    squash: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
+    bounceLow: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
+    bounceHigh: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
+    bounceMid: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
     dark: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
     popped: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
     transparent: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
@@ -304,9 +304,9 @@ export class GameBoard {
 
     this.assets = {
       regular: convertToColor(assetSheet[0]),
-      falling1: convertToColor(assetSheet[1]),
-      falling2: convertToColor(assetSheet[2]),
-      squash: convertToColor(assetSheet[3]),
+      bounceHigh: convertToColor(assetSheet[1]),
+      bounceMid: convertToColor(assetSheet[2]),
+      bounceLow: convertToColor(assetSheet[3]),
       dark: convertToColor(assetSheet[4]),
       popped: convertToColor(assetSheet[5]),
       transparent: convertToColor(assetSheet[6]),

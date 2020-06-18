@@ -8,6 +8,7 @@ export const tileSize = 32;
 export const AnimationConstants = {
   swapTicks: 4,
   dropStallTicks: 12,
+  dropBounceTicks: 3,
   matchBlinkTicks: 44,
   matchSolidTicks: 20,
   matchPopTicksEach: 9,
