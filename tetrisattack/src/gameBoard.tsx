@@ -1,4 +1,3 @@
-import {IGameInstance} from './tetris-attack';
 import {tileSize, boardHeight, AnimationConstants, boardWidth} from './store/game/gameInstance';
 import {GameTile, TileColor} from './gameTile';
 import {unreachable} from './types/unreachable';
@@ -9,6 +8,13 @@ export type PopAnimation = {
   popAnimationIndex: number;
   matchPhase: 'blink' | 'solid' | 'pop' | 'postPop';
   matchTimer: number;
+};
+
+export type SwapAnimation = {
+  y: number;
+  x1: number;
+  x2: number;
+  swapTickCount: number;
 };
 
 export const GameTiles: GameTile['color'][] = ['red', 'blue', 'yellow', 'teal', 'purple'];
@@ -24,6 +30,7 @@ export class GameBoard {
   tiles: GameTile[] = [];
   cursor: {x: number; y: number} = {x: 0, y: 0};
   popAnimations: PopAnimation[] = [];
+  swapAnimation?: SwapAnimation;
 
   topMostRow = 0;
   get lowestVisibleRow() {
@@ -75,6 +82,31 @@ export class GameBoard {
       for (let x = 0; x < boardWidth; x++) {
         const tile = this.getTile(x, y);
         tile?.tick();
+      }
+    }
+
+    if (this.swapAnimation) {
+      const tile1 = this.getTile(this.swapAnimation.x1, this.swapAnimation.y);
+      const tile2 = this.getTile(this.swapAnimation.x2, this.swapAnimation.y);
+      if (this.swapAnimation.swapTickCount > 0) {
+        this.swapAnimation.swapTickCount--;
+        const swapPercent = 1 - this.swapAnimation.swapTickCount / AnimationConstants.swapTicks;
+        if (tile1) {
+          tile1.drawX = tile1.x * tileSize + tileSize * swapPercent;
+        }
+        if (tile2) {
+          tile2.drawX = tile2.x * tileSize - tileSize * swapPercent;
+        }
+      } else if (this.swapAnimation.swapTickCount === 0) {
+        if (tile1) {
+          tile1.x = this.swapAnimation.x2;
+          tile1.setSwappable(true);
+        }
+        if (tile2) {
+          tile2.x = this.swapAnimation.x1;
+          tile2.setSwappable(true);
+        }
+        this.swapAnimation = undefined;
       }
     }
 
@@ -316,8 +348,14 @@ export class GameBoard {
     const tile = this.getTile(x, y);
     const tileRight = this.getTile(x + 1, y);
     if ((!tile || tile.swappable) && (!tileRight || tileRight.swappable)) {
-      tile?.swap(x + 1);
-      tileRight?.swap(x);
+      this.swapAnimation = {
+        swapTickCount: AnimationConstants.swapTicks,
+        x1: x,
+        x2: x + 1,
+        y,
+      };
+      tile?.setSwappable(false);
+      tileRight?.setSwappable(false);
       return true;
     }
     return false;

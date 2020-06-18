@@ -60,16 +60,11 @@ export class GameTile {
     this.drawY = this.y * tileSize;
   }
 
-  newX: number | undefined;
   newY: number | undefined;
-  swapTickCount: number = 0;
   dropTickCount: number = 0;
 
-  swap(newX: number) {
-    if (!this.swappable) return;
-    this.newX = newX;
-    this.swappable = false;
-    this.swapTickCount = AnimationConstants.swapTicks;
+  setSwappable(swappable: boolean) {
+    this.swappable = swappable;
   }
 
   drawType:
@@ -96,21 +91,9 @@ export class GameTile {
   }
 
   tick() {
-    this.drawX = this.x * tileSize;
+    /*this.drawX = this.x * tileSize;
     this.drawY = this.y * tileSize;
-    if (this.swapTickCount > 0) {
-      this.swapTickCount--;
-      const swapPercent = 1 - this.swapTickCount / AnimationConstants.swapTicks;
-      if (this.newX! > this.x) {
-        this.drawX = this.x * tileSize + tileSize * swapPercent;
-      } else {
-        this.drawX = this.x * tileSize - tileSize * swapPercent;
-      }
-    } else if (this.swapTickCount === 0 && this.newX !== undefined) {
-      this.x = this.newX;
-      this.newX = undefined;
-      this.swappable = true;
-    }
+    */
 
     if (this.dropBounceTick > 0) {
       this.dropBounceTick--;
