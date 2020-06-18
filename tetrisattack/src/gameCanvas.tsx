@@ -1,7 +1,7 @@
 import keyboardJS from 'keyboardjs';
 import {inject, observer} from 'mobx-react';
 import * as React from 'react';
-import {blockSize, boardHeight, boardWidth, GameInstance} from './store/game/gameInstance';
+import {tileSize, boardHeight, boardWidth, GameInstance} from './store/game/gameInstance';
 import {gameStore} from './store/game/store';
 import {MainStoreName, MainStoreProps} from './store/main/store';
 
@@ -25,69 +25,53 @@ export class GameCanvas extends React.Component<Props, State> {
   componentDidMount() {
     this.canvasContext = this.canvas.current!.getContext('2d')!;
 
-    let leftDown = false;
-    let rightDown = false;
-    let downDown = false;
-    let upDown = false;
-    let enterDown = false;
     keyboardJS.bind(
       'left',
-      () => {
-        if (leftDown) {
-          return;
-        }
-        leftDown = true;
-        GameInstance.mainInstance.moveLeft();
-      },
-      () => (leftDown = false)
+      () => GameInstance.mainInstance.moveLeft(),
+      () => {},
+      true
     );
 
     keyboardJS.bind(
       'right',
-      () => {
-        if (rightDown) {
-          return;
-        }
-        rightDown = true;
-        GameInstance.mainInstance.moveRight();
-      },
-      () => (rightDown = false)
-    );
-
-    keyboardJS.bind(
-      'enter',
-      () => {
-        if (enterDown) {
-          return;
-        }
-        enterDown = true;
-        GameInstance.mainInstance.swap();
-      },
-      () => (enterDown = false)
+      () => GameInstance.mainInstance.moveRight(),
+      () => {},
+      true
     );
 
     keyboardJS.bind(
       'down',
-      () => {
-        if (downDown) {
-          return;
-        }
-        downDown = true;
-        GameInstance.mainInstance.moveDown();
-      },
-      () => (downDown = false)
+      () => GameInstance.mainInstance.moveDown(),
+      () => {},
+      true
     );
     keyboardJS.bind(
       'up',
-      () => {
-        if (upDown) {
-          return;
-        }
-        upDown = true;
-        GameInstance.mainInstance.moveUp();
-      },
-      () => (upDown = false)
+      () => GameInstance.mainInstance.moveUp(),
+      () => {},
+      true
     );
+
+    keyboardJS.bind(
+      'enter',
+      () => GameInstance.mainInstance.swap(),
+      () => {},
+      true
+    );
+
+    keyboardJS.bind(
+      'shift',
+      () => {
+        for (let i = 0; i < tileSize; i++) {
+          setTimeout(() => {
+            GameInstance.mainInstance.board.boardOffsetPosition += 1;
+          }, i * 15);
+        }
+      },
+      () => {},
+      true
+    );
+
     this.toggleSpeed();
     this.canvasRender();
   }
@@ -128,8 +112,8 @@ export class GameCanvas extends React.Component<Props, State> {
         <canvas
           ref={this.canvas}
           style={{display: 'flex', flex: 1}}
-          width={boardWidth * blockSize}
-          height={boardHeight * blockSize}
+          width={boardWidth * tileSize}
+          height={boardHeight * tileSize}
         />
       </>
     );
@@ -145,7 +129,7 @@ export class GameCanvas extends React.Component<Props, State> {
     this.canvasContext.save();
 
     try {
-      this.canvasContext.translate(0, boardHeight * blockSize - board.boardOffsetPosition);
+      this.canvasContext.translate(0, boardHeight * tileSize - board.boardOffsetPosition);
       this.canvasContext.lineWidth = 1;
 
       for (let y = board.topMostRow; y < board.lowestVisibleRow + 1; y++) {
@@ -153,48 +137,17 @@ export class GameCanvas extends React.Component<Props, State> {
         if (!row) continue;
         for (let x = 0; x < boardWidth; x++) {
           const tile = row.tiles[x];
-          let color: string;
-          switch (tile.color) {
-            case 'red':
-              color = '#ff0000';
-              break;
-            case 'blue':
-              color = '#1900ff';
-              break;
-            case 'yellow':
-              color = '#ffea00';
-              break;
-            case 'teal':
-              color = '#2ee5c2';
-              break;
-            case 'purple':
-              color = '#3816a9';
-              break;
-            case 'empty':
-              continue;
-          }
-          const colorPad = 5;
-          this.canvasContext.fillStyle = GameCanvas.colorLuminance(color, 0.3);
-          this.canvasContext.fillRect(tile.drawX, tile.drawY, blockSize, blockSize);
-          this.canvasContext.fillStyle = color;
-          this.canvasContext.fillRect(
-            tile.drawX + colorPad,
-            tile.drawY + colorPad,
-            blockSize - colorPad * 2,
-            blockSize - colorPad * 2
-          );
-          this.canvasContext.strokeStyle = 'black';
-          this.canvasContext.strokeRect(tile.drawX, tile.drawY, blockSize, blockSize);
+          tile.draw(this.canvasContext);
         }
       }
 
       this.canvasContext.lineWidth = 4;
       this.canvasContext.strokeStyle = 'grey';
       this.canvasContext.strokeRect(
-        board.cursor.x * blockSize - blockSize * 0.1,
-        board.cursor.y * blockSize - blockSize * 0.1,
-        blockSize * 2 + blockSize * 0.2,
-        blockSize + blockSize * 0.2
+        board.cursor.x * tileSize - tileSize * 0.1,
+        board.cursor.y * tileSize - tileSize * 0.1,
+        tileSize * 2 + tileSize * 0.2,
+        tileSize + tileSize * 0.2
       );
     } catch (ex) {
       console.error(ex);
@@ -205,7 +158,7 @@ export class GameCanvas extends React.Component<Props, State> {
     window.requestAnimationFrame(() => this.canvasRender());
   }
 
-  private static colorLuminance(hex: string, lum: number) {
+  static colorLuminance(hex: string, lum: number) {
     hex = hex.replace(/[^0-9a-f]/gi, '');
     let rgb = '#';
     for (let i = 0; i < 3; i++) {

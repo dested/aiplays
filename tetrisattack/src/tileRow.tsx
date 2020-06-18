@@ -3,7 +3,7 @@ import {randomElement} from './utilts';
 import {GameBoard} from './gameBoard';
 import {GameTile} from './gameTile';
 
-export const GameTiles: GameTile['color'][] = ['red', 'blue', 'yellow', 'teal', 'purple'];
+export const GameTiles: GameTile['color'][] = ['red', 'blue', 'yellow' /*, 'teal' , 'purple'*/];
 
 export class TileRow {
   tiles: GameTile[] = [];

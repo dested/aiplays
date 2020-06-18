@@ -114,14 +114,18 @@ export class CodeEditor extends React.Component<Props, State> {
 
   render() {
     return (
-      <MonacoEditor
-        ref={this.editor}
-        language={'typescript'}
-        theme={'vs-dark'}
-        value={this.state.code}
-        options={{automaticLayout: true, formatOnType: true}}
-        onChange={this.onChange}
-      />
+      <>
+{/*
+        <MonacoEditor
+          ref={this.editor}
+          language={'typescript'}
+          theme={'vs-dark'}
+          value={this.state.code}
+          options={{automaticLayout: true, formatOnType: true}}
+          onChange={this.onChange}
+        />
+*/}
+      </>
     );
   }
   editor = React.createRef<MonacoEditor>();

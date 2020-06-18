@@ -4,7 +4,7 @@ import {GameTile} from '../../gameTile';
 
 export const boardWidth = 6;
 export const boardHeight = 12;
-export const blockSize = 32;
+export const tileSize = 32;
 export const AnimationConstants = {
   swapTicks: 4,
   dropStallTicks: 12,
@@ -55,7 +55,7 @@ export class GameInstance implements IGameInstance {
   }
 
   moveUp() {
-    if (this.board.cursor.y < 0) {
+    if (this.board.cursor.y < this.board.topMostRow - 1) {
       return false;
     }
     this.board.cursor.y--;

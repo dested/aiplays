@@ -1,7 +1,7 @@
 import {IGameInstance} from './tetris-attack';
 import {GameCanvas} from './gameCanvas';
 import {TileRow} from './tileRow';
-import {blockSize, boardHeight} from './store/game/gameInstance';
+import {tileSize, boardHeight} from './store/game/gameInstance';
 import {GameTile} from './gameTile';
 import {unreachable} from './types/unreachable';
 
@@ -26,14 +26,30 @@ export class GameBoard {
     return this.rows.length;
   }
 
-  boardOffsetPosition = blockSize * (boardHeight / 4);
-  speed = 58;
+  boardOffsetPosition = tileSize * (boardHeight / 2);
+  speed = 10;
 
   tickCount = 0;
 
+  get boardPaused() {
+    for (let y = this.lowestVisibleRow; y >= this.topMostRow; y--) {
+      const row = this.rows[y];
+      if (row) {
+        for (const tile of row.tiles) {
+          if (tile.matchPhase) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   tick() {
-    if (this.tickCount++ % (60 - this.speed) === 0) {
-      this.boardOffsetPosition += 1;
+    if (!this.boardPaused) {
+      if (this.tickCount++ % (60 - this.speed) === 0) {
+        this.boardOffsetPosition += 1;
+      }
     }
 
     if (this.tickCount % 10 === 0) {
@@ -42,9 +58,8 @@ export class GameBoard {
         if (row.isEmpty()) {
           this.topMostRow = y;
         } else {
-          if (boardHeight * blockSize - this.boardOffsetPosition - this.rows[this.topMostRow].tiles[0].drawY < 0) {
-            debugger;
-            alert('dead');
+          if (boardHeight * tileSize - this.boardOffsetPosition - this.rows[this.topMostRow].tiles[0].drawY < 0) {
+            // alert('dead');
           }
           break;
         }
@@ -65,7 +80,7 @@ export class GameBoard {
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
       const row = this.rows[y];
       for (const tile of row.tiles) {
-        if (tile.swappable) {
+        if (tile.swappable && tile.color !== 'empty') {
           let total: number;
           if (tile.x > 0) {
             total = this.testTile(tile.color, 'left', tile.x - 1, tile.y, 1);
@@ -139,45 +154,44 @@ export class GameBoard {
     y: number,
     count: number
   ): number {
+    const gameRow = this.rows[y];
+    if (!gameRow) return count;
+    const gameTile = gameRow.tiles[x];
+    if (!gameTile || !gameTile.swappable) return count;
+
     switch (direction) {
       case 'left':
-        if (this.rows[y].tiles[x].color === color) {
-          if (x > 0) {
-            const total = this.testTile(color, 'left', x - 1, y, count + 1);
-            if (total >= 3) {
-              this.rows[y].tiles[x].pop();
-            }
-            return total;
-          }
-        }
-        return count;
-      case 'right':
-        if (this.rows[y].tiles[x].color === color) {
-          if (x < this.rows[y].tiles.length - 1) {
-            const total = this.testTile(color, 'right', x + 1, y, count + 1);
-            if (total >= 3) {
-              this.rows[y].tiles[x].pop();
-            }
-            return total;
-          }
-        }
-        return count;
-
-      case 'up':
-        if (this.rows[y] && this.rows[y].tiles[x].color === color) {
-          const total = this.testTile(color, 'up', x, y - 1, count + 1);
+        if (gameTile.color === color) {
+          const total = this.testTile(color, 'left', x - 1, y, count + 1);
           if (total >= 3) {
-            this.rows[y].tiles[x].pop();
+            gameTile.pop();
           }
           return total;
         }
         return count;
-
+      case 'right':
+        if (gameTile.color === color) {
+          const total = this.testTile(color, 'right', x + 1, y, count + 1);
+          if (total >= 3) {
+            gameTile.pop();
+          }
+          return total;
+        }
+        return count;
+      case 'up':
+        if (gameTile.color === color) {
+          const total = this.testTile(color, 'up', x, y - 1, count + 1);
+          if (total >= 3) {
+            gameTile.pop();
+          }
+          return total;
+        }
+        return count;
       case 'down':
-        if (y < this.lowestVisibleRow && this.rows[y].tiles[x].color === color) {
+        if (y < this.lowestVisibleRow && gameTile.color === color) {
           const total = this.testTile(color, 'down', x, y + 1, count + 1);
           if (total >= 3) {
-            this.rows[y].tiles[x].pop();
+            gameTile.pop();
           }
           return total;
         }

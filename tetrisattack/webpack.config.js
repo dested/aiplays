@@ -6,7 +6,7 @@ var nodeExternals = require('webpack-node-externals');
 module.exports = env => {
   return {
     entry: './src/main.tsx',
-    // devtool: 'inline-source-map',
+    devtool: 'inline-source-map',
     output: {
       publicPath: "/"
     },
@@ -22,7 +22,6 @@ module.exports = env => {
       // 'lodash': 'lodash'
     }],
     plugins: [env === 'deploy' && new UglifyJsPlugin(),
-
       new MonacoWebpackPlugin({
         languages: ['typescript']
       })
