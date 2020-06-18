@@ -1,14 +1,10 @@
-import {AnimationConstants, tileSize} from './store/game/gameInstance';
+import {tileSize} from './store/game/gameInstance';
 import {unreachable} from './types/unreachable';
 import {GameBoard} from './gameBoard';
 
 export type TileColor = 'green' | 'purple' | 'red' | 'yellow' | 'teal' | 'blue';
 
 export class GameTile {
-  private dropBounceTick = 0;
-  private dropBouncePhase?: 'regular' | 'low' | 'high' | 'mid';
-  private dropState?: 'stalled' | 'falling';
-
   draw(context: CanvasRenderingContext2D) {
     switch (this.drawType) {
       case 'matched':
@@ -45,9 +41,9 @@ export class GameTile {
   drawX: number;
   drawY: number;
 
-  get droppable() {
+  /* get droppable() {
     return this.swappable || this.dropState === 'falling';
-  }
+  }*/
 
   constructor(
     public gameBoard: GameBoard,
@@ -60,8 +56,14 @@ export class GameTile {
     this.drawY = this.y * tileSize;
   }
 
-  newY: number | undefined;
-  dropTickCount: number = 0;
+  setX(x: number) {
+    this.x = x;
+    this.drawX = this.x * tileSize;
+  }
+  setY(y: number) {
+    this.y = y;
+    this.drawY = this.y * tileSize;
+  }
 
   setSwappable(swappable: boolean) {
     this.swappable = swappable;
@@ -77,73 +79,9 @@ export class GameTile {
     | 'bounce-high'
     | 'bounce-mid' = 'regular';
 
-  drop(newY: number) {
-    if (this.dropState === 'stalled') return;
-    this.swappable = false;
-    if (!this.dropState) {
-      this.dropTickCount = AnimationConstants.dropStallTicks;
-      this.dropState = 'stalled';
-    } else {
-      this.dropTickCount = 0;
-      this.dropState = 'falling';
-    }
-    this.newY = newY;
-  }
-
-  tick() {
-    /*this.drawX = this.x * tileSize;
-    this.drawY = this.y * tileSize;
-    */
-
-    if (this.dropBounceTick > 0) {
-      this.dropBounceTick--;
-    } else if (this.dropBounceTick === 0) {
-      switch (this.dropBouncePhase) {
-        case 'regular':
-          this.dropBounceTick = AnimationConstants.dropBounceTicks;
-          this.dropBouncePhase = 'low';
-          this.drawType = 'bounce-low';
-          break;
-        case 'low':
-          this.dropBounceTick = AnimationConstants.dropBounceTicks;
-          this.dropBouncePhase = 'high';
-          this.drawType = 'bounce-high';
-          break;
-        case 'high':
-          this.dropBounceTick = AnimationConstants.dropBounceTicks;
-          this.dropBouncePhase = 'mid';
-          this.drawType = 'bounce-mid';
-          break;
-        case 'mid':
-          this.dropBounceTick = 0;
-          this.dropBouncePhase = undefined;
-          this.drawType = 'regular';
-          break;
-      }
-    }
-
-    if (this.dropTickCount > 0) {
-      this.dropTickCount--;
-    } else if (this.dropTickCount === 0 && this.newY !== undefined) {
-      if (this.gameBoard.getTile(this.x, this.newY + 1) !== undefined) {
-        this.startBounce();
-        this.dropState = undefined;
-      } else {
-        this.dropState = 'falling';
-      }
-      this.y = this.newY;
-      this.dropState = undefined;
-      this.newY = undefined;
-      this.swappable = true;
-    }
-  }
+  tick() {}
 
   pop() {
     this.swappable = false;
-  }
-
-  private startBounce() {
-    this.dropBounceTick = 1;
-    this.dropBouncePhase = 'regular';
   }
 }

@@ -16,6 +16,16 @@ export type SwapAnimation = {
   x2: number;
   swapTickCount: number;
 };
+export type DroppingAnimation = {
+  bouncingTiles: GameTile[];
+  bottomY: number;
+  x: number;
+  // drop the whole column, also bounce together, test how dropping works in game, if you can swap while its bouncing, above or the bottom one
+  dropTickCount: number;
+
+  dropBounceTick: number;
+  dropBouncePhase: 'not-started' | 'regular' | 'low' | 'high' | 'mid';
+};
 
 export const GameTiles: GameTile['color'][] = ['red', 'blue', 'yellow', 'teal', 'purple'];
 
@@ -31,16 +41,16 @@ export class GameBoard {
   cursor: {x: number; y: number} = {x: 0, y: 0};
   popAnimations: PopAnimation[] = [];
   swapAnimation?: SwapAnimation;
+  droppingColumns: DroppingAnimation[] = [];
 
   topMostRow = 0;
   get lowestVisibleRow() {
-    let lowestY = Number.MAX_SAFE_INTEGER;
-    for (const tile of this.tiles) {
-      if (this.boardOffsetPosition - tile.drawY <= 0) {
-        lowestY = Math.min(lowestY, tile.y - 1);
+    for (let y = this.topMostRow; y < 10000; y++) {
+      if (this.boardOffsetPosition - y * tileSize <= 0) {
+        return y - 1;
       }
     }
-    return lowestY;
+    return 10000;
   }
 
   boardOffsetPosition = tileSize * (boardHeight / 2);
@@ -71,9 +81,11 @@ export class GameBoard {
           break;
         }
       }*/
-      for (let i = 0; i < 15; i++) {
-        if (!this.getTile(0, this.topMostRow + i)) {
-          this.fillRandom(this.topMostRow + i);
+
+      const maxY = Math.max(...this.tiles.map((a) => a.y)) + 1;
+      if (maxY - this.topMostRow < 15) {
+        for (let y = maxY; y < maxY - this.topMostRow; y++) {
+          this.fillRandom(this.topMostRow + y);
         }
       }
     }
@@ -99,11 +111,11 @@ export class GameBoard {
         }
       } else if (this.swapAnimation.swapTickCount === 0) {
         if (tile1) {
-          tile1.x = this.swapAnimation.x2;
+          tile1.setX(this.swapAnimation.x2);
           tile1.setSwappable(true);
         }
         if (tile2) {
-          tile2.x = this.swapAnimation.x1;
+          tile2.setX(this.swapAnimation.x1);
           tile2.setSwappable(true);
         }
         this.swapAnimation = undefined;
@@ -173,7 +185,7 @@ export class GameBoard {
             }
             break;
           case 'postPop':
-            this.tiles.remove(tile);
+            this.popTile(tile);
             break;
           case undefined:
             break;
@@ -185,7 +197,7 @@ export class GameBoard {
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
       for (let x = 0; x < boardWidth; x++) {
         const tile = this.getTile(x, y);
-        if (!tile || !tile.swappable || tile.newY !== undefined) continue;
+        if (!tile || !tile.swappable) continue;
         let total: number;
         if (tile.x < boardWidth - 1) {
           total = this.testTile(queuedPops, tile.color, 'right', tile.x + 1, tile.y, 1);
@@ -211,24 +223,88 @@ export class GameBoard {
       this.popAnimations.push(popAnimation);
     }
 
+    for (let i = this.droppingColumns.length - 1; i >= 0; i--) {
+      const droppingPiece = this.droppingColumns[i];
+
+      if (droppingPiece.dropBouncePhase !== 'not-started') {
+        if (droppingPiece.dropBounceTick > 0) {
+          droppingPiece.dropBounceTick--;
+        } else if (droppingPiece.dropBounceTick === 0) {
+          switch (droppingPiece.dropBouncePhase) {
+            case 'regular':
+              droppingPiece.dropBounceTick = AnimationConstants.dropBounceTicks;
+              droppingPiece.dropBouncePhase = 'low';
+              for (const gameTile of droppingPiece.bouncingTiles) {
+                gameTile.drawType = 'bounce-low';
+              }
+              break;
+            case 'low':
+              droppingPiece.dropBounceTick = AnimationConstants.dropBounceTicks;
+              droppingPiece.dropBouncePhase = 'high';
+              for (const gameTile of droppingPiece.bouncingTiles) {
+                gameTile.drawType = 'bounce-high';
+                gameTile.setSwappable(true);
+              }
+              break;
+            case 'high':
+              droppingPiece.dropBounceTick = AnimationConstants.dropBounceTicks;
+              droppingPiece.dropBouncePhase = 'mid';
+              for (const gameTile of droppingPiece.bouncingTiles) {
+                gameTile.drawType = 'bounce-mid';
+              }
+              break;
+            case 'mid':
+              for (const gameTile of droppingPiece.bouncingTiles) {
+                gameTile.drawType = 'regular';
+              }
+              this.droppingColumns.remove(droppingPiece);
+              break;
+          }
+        }
+      } else {
+        if (droppingPiece.dropTickCount > 0) {
+          droppingPiece.dropTickCount--;
+        } else if (droppingPiece.dropTickCount === 0) {
+          for (let y = this.topMostRow; y <= droppingPiece.bottomY; y++) {
+            const tile = this.getTile(droppingPiece.x, y);
+            if (tile) {
+              tile.setY(tile.y + 1);
+            }
+          }
+          droppingPiece.bottomY += 1;
+          if (this.getTile(droppingPiece.x, droppingPiece.bottomY + 1) !== undefined) {
+            droppingPiece.bouncingTiles = [];
+
+            for (let y = this.topMostRow + 1; y <= droppingPiece.bottomY; y++) {
+              const tile = this.getTile(droppingPiece.x, y);
+              if (tile) {
+                droppingPiece.bouncingTiles.push(tile);
+                tile.setSwappable(false);
+              }
+            }
+            droppingPiece.dropBounceTick = 1;
+            droppingPiece.dropBouncePhase = 'regular';
+          } else {
+            droppingPiece.dropTickCount = 0;
+          }
+        }
+      }
+    }
+
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
       for (let x = 0; x < boardWidth; x++) {
         const tile = this.getTile(x, y);
-        if (tile && tile.droppable) {
+        if (tile && tile.swappable) {
           if (!this.getTile(tile.x, tile.y + 1)) {
-            const tilesToDrop: GameTile[] = [];
-            for (let upY = tile.y; upY >= this.topMostRow; upY--) {
-              const tileUp = this.getTile(tile.x, upY);
-              if (tileUp && tileUp.droppable) {
-                tilesToDrop.push(tileUp);
-              } else {
-                break;
-              }
-            }
-
-            for (const gameTile of tilesToDrop) {
-              gameTile.drop(gameTile.y + 1);
-            }
+            tile.setSwappable(false);
+            this.droppingColumns.push({
+              dropTickCount: AnimationConstants.dropStallTicks,
+              bouncingTiles: [],
+              dropBounceTick: 0,
+              x: tile.x,
+              bottomY: tile.y,
+              dropBouncePhase: 'not-started',
+            });
           }
         }
       }
@@ -244,7 +320,7 @@ export class GameBoard {
     count: number
   ): number {
     const gameTile = this.getTile(x, y);
-    if (!gameTile || !gameTile.swappable || gameTile.newY !== undefined) return count;
+    if (!gameTile || !gameTile.swappable) return count;
 
     switch (direction) {
       case 'left':
@@ -363,5 +439,9 @@ export class GameBoard {
 
   getTile(x: number, y: number) {
     return this.tiles.find((a) => a.x === x && a.y === y);
+  }
+
+  private popTile(tile: GameTile) {
+    this.tiles.remove(tile);
   }
 }
