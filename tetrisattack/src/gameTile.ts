@@ -60,6 +60,10 @@ export class GameTile {
   drawX: number;
   drawY: number;
 
+  get droppable() {
+    return this.swappable || this.newY !== undefined;
+  }
+
   constructor(
     public row: TileRow,
     public color: TileColor,
@@ -94,9 +98,13 @@ export class GameTile {
     | 'bounce-mid' = 'regular';
 
   drop(newY: number) {
-    this.newY = newY;
     this.swappable = false;
-    this.dropTickCount = AnimationConstants.dropStallTicks;
+    if (this.newY === undefined) {
+      this.dropTickCount = AnimationConstants.dropStallTicks;
+    } else {
+      this.dropTickCount = 0;
+    }
+    this.newY = newY;
   }
 
   tick() {

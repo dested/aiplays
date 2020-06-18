@@ -34,7 +34,7 @@ export class GameStore {
     }, 16);
     GameInstance.mainInstance = gameLogic;
     gameLogic.reset();
-    this.aiScript = new result.TetrisAttackAI(gameLogic);
+    // this.aiScript = new result.TetrisAttackAI(gameLogic);
   }
 }
 

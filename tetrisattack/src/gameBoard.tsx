@@ -152,20 +152,19 @@ export class GameBoard {
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
       const row = this.rows[y];
       for (const tile of row.tiles) {
-        if (tile.swappable && tile.color !== 'empty') {
-          let total: number;
-          if (tile.x < row.tiles.length - 1) {
-            total = this.testTile(queuedPops, tile.color, 'right', tile.x + 1, tile.y, 1);
-            if (total >= 3) {
-              tile.pop();
-              queuedPops.push(tile);
-            }
-          }
-          total = this.testTile(queuedPops, tile.color, 'down', tile.x, tile.y + 1, 1);
+        if (!(tile.swappable && tile.newY === undefined && tile.color !== 'empty')) continue;
+        let total: number;
+        if (tile.x < row.tiles.length - 1) {
+          total = this.testTile(queuedPops, tile.color, 'right', tile.x + 1, tile.y, 1);
           if (total >= 3) {
             tile.pop();
             queuedPops.push(tile);
           }
+        }
+        total = this.testTile(queuedPops, tile.color, 'down', tile.x, tile.y + 1, 1);
+        if (total >= 3) {
+          tile.pop();
+          queuedPops.push(tile);
         }
       }
     }
@@ -182,32 +181,22 @@ export class GameBoard {
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
       const row = this.rows[y];
       for (const tile of row.tiles) {
-        if (tile.swappable) {
+        if (tile.droppable) {
           if (
             this.rows[tile.y + 1].tiles[tile.x].color === 'empty' &&
             this.rows[tile.y].tiles[tile.x].color !== 'empty'
           ) {
             const tilesToDrop: GameTile[] = [];
             for (let upY = tile.y; upY >= this.topMostRow; upY--) {
-              if (this.rows[upY].tiles[tile.x].color !== 'empty' && this.rows[upY].tiles[tile.x].swappable) {
+              if (this.rows[upY].tiles[tile.x].color !== 'empty' && this.rows[upY].tiles[tile.x].droppable) {
                 tilesToDrop.push(this.rows[upY].tiles[tile.x]);
               } else {
                 break;
               }
             }
 
-            let lowestY = tile.y;
-            for (let downY = tile.y + 1; downY < this.rows.length; downY++) {
-              if (this.rows[downY].tiles[tile.x].color === 'empty' && this.rows[downY].tiles[tile.x].swappable) {
-                lowestY = downY;
-              } else {
-                break;
-              }
-            }
-
-            for (let i = 0; i < tilesToDrop.length; i++) {
-              const tilesToDropElement = tilesToDrop[i];
-              tilesToDropElement.drop(lowestY - i);
+            for (const gameTile of tilesToDrop) {
+              gameTile.drop(gameTile.y + 1);
             }
           }
         }
@@ -231,7 +220,7 @@ export class GameBoard {
     const gameRow = this.rows[y];
     if (!gameRow) return count;
     const gameTile = gameRow.tiles[x];
-    if (!gameTile || !gameTile.swappable) return count;
+    if (!gameTile || !gameTile.swappable || gameTile.newY !== undefined) return count;
 
     switch (direction) {
       case 'left':

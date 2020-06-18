@@ -8,55 +8,59 @@ module.exports = env => {
     entry: './src/main.tsx',
     devtool: 'inline-source-map',
     output: {
-      publicPath: "/"
+      publicPath: '/',
     },
     ...(process.env.WEBPACK_SERVE ? {mode: 'development'} : {}),
     resolve: {
-      extensions: ['.ts', '.tsx', '.js', '.css']
+      extensions: ['.ts', '.tsx', '.js', '.css'],
     },
     devServer: {
       contentBase: path.resolve('./'),
       publicPath: '/',
     },
-    externals: [{
-      // 'lodash': 'lodash'
-    }],
-    plugins: [env === 'deploy' && new UglifyJsPlugin(),
+    externals: [
+      {
+        // 'lodash': 'lodash'
+      },
+    ],
+    plugins: [
+      env === 'deploy' && new UglifyJsPlugin(),
+      /*
       new MonacoWebpackPlugin({
         languages: ['typescript']
       })
-    ].filter(a => a),
+*/
+    ].filter((a) => a),
     module: {
       rules: [
         {
           test: /\.tsx?$/,
           loader: 'ts-loader',
           options: {
-            compilerOptions: {noEmit: false}
-          }
+            compilerOptions: {noEmit: false},
+          },
         },
         {
           test: /\.less$/,
-          loader: 'less-loader' // compiles Less to CSS
+          loader: 'less-loader', // compiles Less to CSS
         },
         {
           test: /\.(data)$/,
-          use: [
-            'file-loader'
-          ]
+          use: ['file-loader'],
         },
         {
           test: /\.css$/,
-          loader: 'style-loader!css-loader'
+          loader: 'style-loader!css-loader',
         },
         {
           test: /\.(gif|svg|jpg|png)$/,
-          loader: 'file-loader'
+          loader: 'file-loader',
         },
-           {
-             test: /\.(woff|woff2|eot|ttf|otf)$/,
-         loader: 'file-loader',
-       },]
-    }
+        {
+          test: /\.(woff|woff2|eot|ttf|otf)$/,
+          loader: 'file-loader',
+        },
+      ],
+    },
   };
 };

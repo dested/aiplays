@@ -1,11 +1,10 @@
 import keyboardJS from 'keyboardjs';
-import IStandaloneCodeEditor = monaco.editor.IStandaloneCodeEditor;
-import {inject, observer} from 'mobx-react';
-import * as monaco from 'monaco-editor';
+// import IStandaloneCodeEditor = monaco.editor.IStandaloneCodeEditor;
+// import {inject, observer} from 'mobx-react';
+// import * as monaco from 'monaco-editor';
 import * as React from 'react';
-import MonacoEditor from 'react-monaco-editor';
-import {RouteComponentProps} from 'react-router';
-import * as ts from 'typescript';
+// import MonacoEditor from 'react-monaco-editor';
+// import * as ts from 'typescript';
 import {gameStore} from './store/game/store';
 import {MainStoreName, MainStoreProps} from './store/main/store';
 
@@ -16,7 +15,7 @@ interface State {
 }
 
 export class CodeEditor extends React.Component<Props, State> {
-  private tetrisDTS?: ts.SourceFile;
+  // private tetrisDTS?: ts.SourceFile;
   constructor(props: Props) {
     super(props);
     this.state = {code: ''};
@@ -28,16 +27,18 @@ export class CodeEditor extends React.Component<Props, State> {
       return false;
     });
     const libText = await (await fetch('./src/tetris-attack.d.ts')).text();
-    this.tetrisDTS = ts.createSourceFile('tetris-attack.d.ts', libText, ts.ScriptTarget.ES5);
+    // this.tetrisDTS = ts.createSourceFile('tetris-attack.d.ts', libText, ts.ScriptTarget.ES5);
     let code = ''; // localStorage.getItem('tetris-attack-script');
     if (!code) {
       code = await (await fetch('./src/tetrisAttackGame.ts')).text();
     }
 
+    /*
     monaco.languages.typescript.typescriptDefaults.addExtraLib(
       libText,
       'file:///node_modules/@types/tetris-attack.d.ts'
     );
+*/
     /*
     monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
       target: monaco.languages.typescript.ScriptTarget.ES2020,
@@ -52,7 +53,7 @@ export class CodeEditor extends React.Component<Props, State> {
 
   runCode() {
     (document.getElementById('console') as HTMLTextAreaElement).value = '';
-
+    /*
     const sourceFile = ts.createSourceFile('game.ts', this.state.code, ts.ScriptTarget.ES5);
     let outputText: string;
     const program = ts.createProgram(
@@ -107,15 +108,15 @@ export class CodeEditor extends React.Component<Props, State> {
       }
     );
     // Emit
-    program.emit();
+    program.emit();*/
 
-    gameStore.loadAIScript(outputText!);
+    gameStore.loadAIScript('' /*outputText!*/);
   }
 
   render() {
     return (
       <>
-{/*
+        {/*
         <MonacoEditor
           ref={this.editor}
           language={'typescript'}
@@ -128,7 +129,7 @@ export class CodeEditor extends React.Component<Props, State> {
       </>
     );
   }
-  editor = React.createRef<MonacoEditor>();
+  // editor = React.createRef<MonacoEditor>();
 
   onChange = (code: string) => {
     this.setState({code});
