@@ -7,6 +7,7 @@ import {Route} from 'react-router';
 import {HashRouter} from 'react-router-dom';
 import {Builder} from './builder';
 import {stores} from './store/stores';
+import './utils/array';
 
 configure({enforceActions: 'always'});
 

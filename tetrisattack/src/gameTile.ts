@@ -1,6 +1,7 @@
 import {TileRow} from './tileRow';
 import {AnimationConstants, tileSize} from './store/game/gameInstance';
 import {GameCanvas} from './gameCanvas';
+import {PopAnimation} from './gameBoard';
 
 export class GameTile {
   draw(context: CanvasRenderingContext2D) {
@@ -53,7 +54,7 @@ export class GameTile {
         context.strokeStyle = 'white';
         context.strokeRect(this.drawX, this.drawY, tileSize, tileSize);
         break;
-      case 'pop':
+      case 'popping':
         context.fillStyle = GameCanvas.colorLuminance(color, 0.7);
         context.fillRect(this.drawX, this.drawY, tileSize, tileSize);
         context.fillStyle = color;
@@ -65,6 +66,8 @@ export class GameTile {
         );
         context.strokeStyle = 'white';
         context.strokeRect(this.drawX, this.drawY, tileSize, tileSize);
+        break;
+      case 'popped':
         break;
       case undefined:
         context.fillStyle = GameCanvas.colorLuminance(color, 0.3);
@@ -108,9 +111,7 @@ export class GameTile {
     this.swapTickCount = AnimationConstants.swapTicks;
   }
 
-  private matchTimer: number = 0;
-  matchPhase?: 'blink' | 'solid' | 'pop' | 'postPop';
-  drawType?: 'matched' | 'matched-blink' | 'pop';
+  drawType?: 'matched' | 'matched-blink' | 'popping' | 'popped';
 
   drop(newY: number) {
     this.newY = newY;
@@ -146,54 +147,9 @@ export class GameTile {
       this.newY = undefined;
       this.swappable = true;
     }
-
-    switch (this.matchPhase) {
-      case 'blink':
-        if (this.matchTimer > 0) {
-          this.matchTimer--;
-          this.drawType = this.matchTimer % 2 === 0 ? 'matched-blink' : 'matched';
-        } else {
-          this.matchPhase = 'solid';
-          this.matchTimer = AnimationConstants.matchSolidTicks;
-        }
-        break;
-      case 'solid':
-        if (this.matchTimer > 0) {
-          this.drawType = 'matched';
-          this.matchTimer--;
-        } else {
-          this.matchPhase = 'pop';
-          this.matchTimer = AnimationConstants.matchPopTicksEach;
-        }
-        break;
-      case 'pop':
-        if (this.matchTimer > 0) {
-          this.drawType = 'pop';
-          this.matchTimer--;
-        } else {
-          this.matchPhase = 'postPop';
-          this.matchTimer = AnimationConstants.matchPostPopTicks;
-        }
-        break;
-      case 'postPop':
-        if (this.matchTimer > 0) {
-          this.drawType = 'matched';
-          this.matchTimer--;
-        } else {
-          this.matchPhase = undefined;
-          this.drawType = undefined;
-          this.color = 'empty';
-          this.swappable = true;
-        }
-        break;
-      case undefined:
-        break;
-    }
   }
 
   pop() {
-    this.matchPhase = 'blink';
-    this.matchTimer = AnimationConstants.matchBlinkTicks;
     this.swappable = false;
   }
 }

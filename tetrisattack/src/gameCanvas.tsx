@@ -25,51 +25,85 @@ export class GameCanvas extends React.Component<Props, State> {
   componentDidMount() {
     this.canvasContext = this.canvas.current!.getContext('2d')!;
 
+    let leftDown = false;
+    let rightDown = false;
+    let downDown = false;
+    let upDown = false;
+    let shiftDown = false;
+    let enterDown = false;
     keyboardJS.bind(
       'left',
-      () => GameInstance.mainInstance.moveLeft(),
-      () => {},
-      true
+      () => {
+        if (leftDown) {
+          return;
+        }
+        leftDown = true;
+        GameInstance.mainInstance.moveLeft();
+      },
+      () => (leftDown = false)
     );
 
     keyboardJS.bind(
       'right',
-      () => GameInstance.mainInstance.moveRight(),
-      () => {},
-      true
-    );
-
-    keyboardJS.bind(
-      'down',
-      () => GameInstance.mainInstance.moveDown(),
-      () => {},
-      true
-    );
-    keyboardJS.bind(
-      'up',
-      () => GameInstance.mainInstance.moveUp(),
-      () => {},
-      true
+      () => {
+        if (rightDown) {
+          return;
+        }
+        rightDown = true;
+        GameInstance.mainInstance.moveRight();
+      },
+      () => (rightDown = false)
     );
 
     keyboardJS.bind(
       'enter',
-      () => GameInstance.mainInstance.swap(),
-      () => {},
-      true
+      () => {
+        if (enterDown) {
+          return;
+        }
+        enterDown = true;
+        GameInstance.mainInstance.swap();
+      },
+      () => (enterDown = false)
+    );
+
+    keyboardJS.bind(
+      'down',
+      () => {
+        if (downDown) {
+          return;
+        }
+        downDown = true;
+        GameInstance.mainInstance.moveDown();
+      },
+      () => (downDown = false)
+    );
+    keyboardJS.bind(
+      'up',
+      () => {
+        if (upDown) {
+          return;
+        }
+        upDown = true;
+        GameInstance.mainInstance.moveUp();
+      },
+      () => (upDown = false)
     );
 
     keyboardJS.bind(
       'shift',
       () => {
+        if (shiftDown) {
+          return;
+        }
+        shiftDown = true;
         for (let i = 0; i < tileSize; i++) {
           setTimeout(() => {
             GameInstance.mainInstance.board.boardOffsetPosition += 1;
           }, i * 15);
         }
       },
-      () => {},
-      true
+      () => (shiftDown = false)
     );
 
     this.toggleSpeed();

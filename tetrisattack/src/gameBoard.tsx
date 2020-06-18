@@ -1,13 +1,21 @@
 import {IGameInstance} from './tetris-attack';
 import {GameCanvas} from './gameCanvas';
 import {TileRow} from './tileRow';
-import {tileSize, boardHeight} from './store/game/gameInstance';
+import {tileSize, boardHeight, AnimationConstants} from './store/game/gameInstance';
 import {GameTile} from './gameTile';
 import {unreachable} from './types/unreachable';
+
+export type PopAnimation = {
+  queuedPops: GameTile[];
+  popAnimationIndex: number;
+  matchPhase: 'blink' | 'solid' | 'pop' | 'postPop';
+  matchTimer: number;
+};
 
 export class GameBoard {
   rows: TileRow[] = [];
   cursor: {x: number; y: number} = {x: 0, y: 0};
+  popAnimations: PopAnimation[] = [];
 
   clone(gameInstance: IGameInstance) {
     const gameBoard = new GameBoard();
@@ -32,17 +40,7 @@ export class GameBoard {
   tickCount = 0;
 
   get boardPaused() {
-    for (let y = this.lowestVisibleRow; y >= this.topMostRow; y--) {
-      const row = this.rows[y];
-      if (row) {
-        for (const tile of row.tiles) {
-          if (tile.matchPhase) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
+    return this.popAnimations.length > 0;
   }
 
   tick() {
@@ -77,33 +75,108 @@ export class GameBoard {
       if (row) row.tick();
     }
 
+    for (const popAnimation of this.popAnimations) {
+      switch (popAnimation.matchPhase) {
+        case 'blink':
+          if (popAnimation.matchTimer > 0) {
+            popAnimation.matchTimer--;
+          } else {
+            popAnimation.matchPhase = 'solid';
+            popAnimation.matchTimer = AnimationConstants.matchSolidTicks;
+          }
+          break;
+        case 'solid':
+          if (popAnimation.matchTimer > 0) {
+            popAnimation.matchTimer--;
+          } else {
+            popAnimation.matchPhase = 'pop';
+            popAnimation.matchTimer = AnimationConstants.matchPopTicksEach;
+          }
+          break;
+        case 'pop':
+          if (popAnimation.matchTimer > 0) {
+            popAnimation.matchTimer--;
+          } else {
+            if (popAnimation.popAnimationIndex < popAnimation.queuedPops.length) {
+              popAnimation.popAnimationIndex++;
+              popAnimation.matchPhase = 'pop';
+              popAnimation.matchTimer = AnimationConstants.matchPopTicksEach;
+            } else {
+              popAnimation.matchPhase = 'postPop';
+              popAnimation.matchTimer = AnimationConstants.matchPostPopTicks;
+            }
+          }
+          break;
+        case 'postPop':
+          if (popAnimation.matchTimer > 0) {
+            popAnimation.matchTimer--;
+          } else {
+            this.popAnimations.remove(popAnimation);
+            continue;
+          }
+          break;
+      }
+
+      for (const tile of popAnimation.queuedPops) {
+        switch (popAnimation.matchPhase) {
+          case 'blink':
+            tile.drawType = popAnimation.matchTimer % 2 === 0 ? 'matched-blink' : 'matched';
+            break;
+          case 'solid':
+            if (popAnimation.matchTimer > 0) {
+              tile.drawType = 'matched';
+            }
+            break;
+          case 'pop':
+            if (popAnimation.matchTimer > 0) {
+              const topPop = popAnimation.queuedPops[popAnimation.popAnimationIndex];
+              if (topPop?.x === tile.x && topPop?.y === tile.y) {
+                tile.drawType = 'popped';
+              } else {
+                if (tile.drawType !== 'popped') tile.drawType = 'popping';
+              }
+            }
+            break;
+          case 'postPop':
+            tile.drawType = undefined;
+            tile.color = 'empty';
+            tile.swappable = true;
+            break;
+          case undefined:
+            break;
+        }
+      }
+    }
+
+    const queuedPops: GameTile[] = [];
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
       const row = this.rows[y];
       for (const tile of row.tiles) {
         if (tile.swappable && tile.color !== 'empty') {
           let total: number;
-          if (tile.x > 0) {
-            total = this.testTile(tile.color, 'left', tile.x - 1, tile.y, 1);
-            if (total >= 3) {
-              tile.pop();
-            }
-          }
           if (tile.x < row.tiles.length - 1) {
-            total = this.testTile(tile.color, 'right', tile.x + 1, tile.y, 1);
+            total = this.testTile(queuedPops, tile.color, 'right', tile.x + 1, tile.y, 1);
             if (total >= 3) {
               tile.pop();
+              queuedPops.push(tile);
             }
           }
-          total = this.testTile(tile.color, 'up', tile.x, tile.y - 1, 1);
+          total = this.testTile(queuedPops, tile.color, 'down', tile.x, tile.y + 1, 1);
           if (total >= 3) {
             tile.pop();
-          }
-          total = this.testTile(tile.color, 'down', tile.x, tile.y + 1, 1);
-          if (total >= 3) {
-            tile.pop();
+            queuedPops.push(tile);
           }
         }
       }
+    }
+    if (queuedPops.length > 0) {
+      const popAnimation: PopAnimation = {
+        queuedPops,
+        popAnimationIndex: 0,
+        matchPhase: 'blink',
+        matchTimer: AnimationConstants.matchBlinkTicks,
+      };
+      this.popAnimations.push(popAnimation);
     }
 
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
@@ -116,7 +189,7 @@ export class GameBoard {
           ) {
             const tilesToDrop: GameTile[] = [];
             for (let upY = tile.y; upY >= this.topMostRow; upY--) {
-              if (this.rows[upY].tiles[tile.x].color !== 'empty') {
+              if (this.rows[upY].tiles[tile.x].color !== 'empty' && this.rows[upY].tiles[tile.x].swappable) {
                 tilesToDrop.push(this.rows[upY].tiles[tile.x]);
               } else {
                 break;
@@ -125,7 +198,7 @@ export class GameBoard {
 
             let lowestY = tile.y;
             for (let downY = tile.y + 1; downY < this.rows.length; downY++) {
-              if (this.rows[downY].tiles[tile.x].color === 'empty') {
+              if (this.rows[downY].tiles[tile.x].color === 'empty' && this.rows[downY].tiles[tile.x].swappable) {
                 lowestY = downY;
               } else {
                 break;
@@ -148,6 +221,7 @@ export class GameBoard {
   }
 
   private testTile(
+    queuedPops: GameTile[],
     color: GameTile['color'],
     direction: 'left' | 'right' | 'up' | 'down',
     x: number,
@@ -162,8 +236,9 @@ export class GameBoard {
     switch (direction) {
       case 'left':
         if (gameTile.color === color) {
-          const total = this.testTile(color, 'left', x - 1, y, count + 1);
+          const total = this.testTile(queuedPops, color, 'left', x - 1, y, count + 1);
           if (total >= 3) {
+            queuedPops.push(gameTile);
             gameTile.pop();
           }
           return total;
@@ -171,8 +246,9 @@ export class GameBoard {
         return count;
       case 'right':
         if (gameTile.color === color) {
-          const total = this.testTile(color, 'right', x + 1, y, count + 1);
+          const total = this.testTile(queuedPops, color, 'right', x + 1, y, count + 1);
           if (total >= 3) {
+            queuedPops.push(gameTile);
             gameTile.pop();
           }
           return total;
@@ -180,8 +256,9 @@ export class GameBoard {
         return count;
       case 'up':
         if (gameTile.color === color) {
-          const total = this.testTile(color, 'up', x, y - 1, count + 1);
+          const total = this.testTile(queuedPops, color, 'up', x, y - 1, count + 1);
           if (total >= 3) {
+            queuedPops.push(gameTile);
             gameTile.pop();
           }
           return total;
@@ -189,8 +266,9 @@ export class GameBoard {
         return count;
       case 'down':
         if (y < this.lowestVisibleRow && gameTile.color === color) {
-          const total = this.testTile(color, 'down', x, y + 1, count + 1);
+          const total = this.testTile(queuedPops, color, 'down', x, y + 1, count + 1);
           if (total >= 3) {
+            queuedPops.push(gameTile);
             gameTile.pop();
           }
           return total;

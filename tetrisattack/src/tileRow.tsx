@@ -1,5 +1,5 @@
 import {boardWidth} from './store/game/gameInstance';
-import {randomElement} from './utilts';
+import {randomElement} from './utils/utilts';
 import {GameBoard} from './gameBoard';
 import {GameTile} from './gameTile';
 
