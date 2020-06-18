@@ -62,7 +62,7 @@ export class GameCanvas extends React.Component<Props, State> {
     );
 
     keyboardJS.bind(
-      'enter',
+      'a',
       () => {
         if (enterDown) {
           return;
@@ -137,6 +137,7 @@ export class GameCanvas extends React.Component<Props, State> {
   render() {
     return (
       <>
+        {/*
         <button
           onClick={this.toggleSpeed}
           style={{
@@ -149,9 +150,10 @@ export class GameCanvas extends React.Component<Props, State> {
         >
           {this.state.isSlow ? 'fast' : 'slow'}
         </button>
+*/}
         <canvas
           ref={this.canvas}
-          style={{display: 'flex', flex: 1, imageRendering: 'pixelated'}}
+          style={{display: 'flex', flex: 1, imageRendering: 'pixelated', border: 'solid 2px black'}}
           width={boardWidth * tileSize}
           height={boardHeight * tileSize}
         />
