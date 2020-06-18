@@ -10,6 +10,8 @@ export type TileColorWithoutEmpty = Exclude<TileColor, 'empty'>;
 export class GameTile {
   private dropBounceTick = 0;
   private dropBouncePhase?: 'regular' | 'low' | 'high' | 'mid';
+  private dropState?: 'stalled' | 'falling';
+
   draw(context: CanvasRenderingContext2D) {
     if (this.color === 'empty') return;
 
@@ -61,7 +63,7 @@ export class GameTile {
   drawY: number;
 
   get droppable() {
-    return this.swappable || this.newY !== undefined;
+    return this.swappable || this.dropState === 'falling';
   }
 
   constructor(
@@ -98,11 +100,14 @@ export class GameTile {
     | 'bounce-mid' = 'regular';
 
   drop(newY: number) {
+    if (this.dropState === 'stalled') return;
     this.swappable = false;
-    if (this.newY === undefined) {
+    if (!this.dropState) {
       this.dropTickCount = AnimationConstants.dropStallTicks;
+      this.dropState = 'stalled';
     } else {
       this.dropTickCount = 0;
+      this.dropState = 'falling';
     }
     this.newY = newY;
   }
@@ -159,8 +164,14 @@ export class GameTile {
       this.dropTickCount--;
     } else if (this.dropTickCount === 0 && this.newY !== undefined) {
       const gameTile = this.row.gameBoard.rows[this.newY].tiles[this.x];
-      gameTile.startBounce();
+      if (this.row.gameBoard.rows[this.newY + 1].tiles[this.x].color !== 'empty') {
+        gameTile.startBounce();
+        gameTile.dropState = undefined;
+      } else {
+        gameTile.dropState = 'falling';
+      }
       gameTile.color = this.color;
+      this.dropState = undefined;
       this.color = 'empty';
       this.newY = undefined;
       this.swappable = true;
