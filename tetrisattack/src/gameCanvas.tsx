@@ -4,6 +4,8 @@ import * as React from 'react';
 import {tileSize, boardHeight, boardWidth, GameInstance} from './store/game/gameInstance';
 import {gameStore} from './store/game/store';
 import {MainStoreName, MainStoreProps} from './store/main/store';
+import {makeSheet, TetrisAttackAssets} from './assetManager';
+import blocks from './assets/game/blocks.png';
 
 interface Props extends MainStoreProps {}
 interface State {
@@ -13,6 +15,7 @@ interface State {
 @inject(MainStoreName)
 @observer
 export class GameCanvas extends React.Component<Props, State> {
+  private assetSheet?: HTMLCanvasElement[][];
   constructor(props: Props) {
     super(props);
 
@@ -22,8 +25,11 @@ export class GameCanvas extends React.Component<Props, State> {
   private canvas = React.createRef<HTMLCanvasElement>();
   private canvasContext!: CanvasRenderingContext2D;
 
-  componentDidMount() {
+  async componentDidMount() {
+    await TetrisAttackAssets.load();
+    this.assetSheet = await makeSheet(blocks, {width: 16, height: 16}, {width: 3, height: 3});
     this.canvasContext = this.canvas.current!.getContext('2d')!;
+    this.canvasContext.imageSmoothingEnabled = false;
 
     let leftDown = false;
     let rightDown = false;
@@ -145,7 +151,7 @@ export class GameCanvas extends React.Component<Props, State> {
         </button>
         <canvas
           ref={this.canvas}
-          style={{display: 'flex', flex: 1}}
+          style={{display: 'flex', flex: 1, imageRendering: 'pixelated'}}
           width={boardWidth * tileSize}
           height={boardHeight * tileSize}
         />
@@ -153,11 +159,16 @@ export class GameCanvas extends React.Component<Props, State> {
     );
   }
 
+  firstRender = false;
   canvasRender() {
     this.canvasContext.clearRect(0, 0, this.canvas.current!.width, this.canvas.current!.height);
-    if (!GameInstance.mainInstance) {
+    if (!GameInstance.mainInstance || !this.assetSheet) {
       window.requestAnimationFrame(() => this.canvasRender());
       return;
+    }
+    if (!this.firstRender) {
+      GameInstance.mainInstance.board.loadAssetSheet(this.assetSheet);
+      this.firstRender = true;
     }
     const board = GameInstance.mainInstance.board;
     this.canvasContext.save();
@@ -175,13 +186,13 @@ export class GameCanvas extends React.Component<Props, State> {
         }
       }
 
-      this.canvasContext.lineWidth = 4;
-      this.canvasContext.strokeStyle = 'grey';
-      this.canvasContext.strokeRect(
-        board.cursor.x * tileSize - tileSize * 0.1,
-        board.cursor.y * tileSize - tileSize * 0.1,
-        tileSize * 2 + tileSize * 0.2,
-        tileSize + tileSize * 0.2
+      const selectionBox = TetrisAttackAssets.assets['game.selectionBox'].image;
+      this.canvasContext.drawImage(
+        selectionBox,
+        board.cursor.x * tileSize - 4,
+        board.cursor.y * tileSize - 4,
+        tileSize * 2 + 8,
+        tileSize + 8
       );
     } catch (ex) {
       console.error(ex);

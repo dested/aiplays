@@ -10,7 +10,8 @@
     "pre": "npm run tsc & npm run pretty & npm run lint",
     "dev": "webpack-dev-server --mode=development --progress --hide-modules --watch",
     "prod": "webpack  --mode=production --progress --hide-modules ",
-    "deploy": "webpack  --mode=production --progress --hide-modules --env=deploy"
+    "deploy": "webpack  --mode=production --progress --hide-modules --env=deploy",
+    "assets": "node scripts/process-assets"
   },
   "dependencies": {
     "keyboardjs": "^2.6.3",

@@ -6,3 +6,6 @@ export function randomElement<T>(array: T[]) {
 export function random(chance: number) {
   return Math.random() * 100 < chance;
 }
+export function safeKeys<T>(obj: T): (keyof T)[] {
+  return Object.keys(obj) as (keyof T)[];
+}

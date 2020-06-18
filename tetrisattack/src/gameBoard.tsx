@@ -2,7 +2,7 @@ import {IGameInstance} from './tetris-attack';
 import {GameCanvas} from './gameCanvas';
 import {TileRow} from './tileRow';
 import {tileSize, boardHeight, AnimationConstants} from './store/game/gameInstance';
-import {GameTile} from './gameTile';
+import {GameTile, TileColor, TileColorWithoutEmpty} from './gameTile';
 import {unreachable} from './types/unreachable';
 
 export type PopAnimation = {
@@ -120,11 +120,11 @@ export class GameBoard {
       for (const tile of popAnimation.queuedPops) {
         switch (popAnimation.matchPhase) {
           case 'blink':
-            tile.drawType = popAnimation.matchTimer % 2 === 0 ? 'matched-blink' : 'matched';
+            tile.drawType = popAnimation.matchTimer % 2 === 0 ? 'matched' : 'matched-blink';
             break;
           case 'solid':
             if (popAnimation.matchTimer > 0) {
-              tile.drawType = 'matched';
+              tile.drawType = 'popping';
             }
             break;
           case 'pop':
@@ -171,7 +171,7 @@ export class GameBoard {
     }
     if (queuedPops.length > 0) {
       const popAnimation: PopAnimation = {
-        queuedPops,
+        queuedPops: queuedPops.reverse(),
         popAnimationIndex: 0,
         matchPhase: 'blink',
         matchTimer: AnimationConstants.matchBlinkTicks,
@@ -277,5 +277,40 @@ export class GameBoard {
       default:
         throw unreachable(direction);
     }
+  }
+
+  assets?: {
+    regular: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
+    falling1: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
+    falling2: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
+    squash: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
+    dark: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
+    popped: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
+    transparent: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
+    black: {[color in TileColorWithoutEmpty]: HTMLCanvasElement};
+  };
+
+  loadAssetSheet(assetSheet: HTMLCanvasElement[][]) {
+    function convertToColor(assets: HTMLCanvasElement[]): {[color in TileColorWithoutEmpty]: HTMLCanvasElement} {
+      return {
+        green: assets[0],
+        purple: assets[1],
+        red: assets[2],
+        yellow: assets[3],
+        teal: assets[4],
+        blue: assets[5],
+      };
+    }
+
+    this.assets = {
+      regular: convertToColor(assetSheet[0]),
+      falling1: convertToColor(assetSheet[1]),
+      falling2: convertToColor(assetSheet[2]),
+      squash: convertToColor(assetSheet[3]),
+      dark: convertToColor(assetSheet[4]),
+      popped: convertToColor(assetSheet[5]),
+      transparent: convertToColor(assetSheet[6]),
+      black: convertToColor(assetSheet[7]),
+    };
   }
 }
