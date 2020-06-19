@@ -25,3 +25,6 @@ export function groupBy<T, TKey>(items: T[], predicate: (pred: T) => TKey): {ite
   }
   return groups;
 }
+export function isMobile() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
+}

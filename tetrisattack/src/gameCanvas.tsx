@@ -8,11 +8,54 @@ import {makeSheet, TetrisAttackAssets} from './assetManager';
 import blocks from './assets/game/blocks.png';
 import comboBoxes from './assets/game/comboBoxes.png';
 import numbers from './assets/game/numbers.png';
+import {JoyStick} from './components/joystick';
+import {isMobile} from './utils/utilts';
+import {FC, useCallback} from 'react';
+import {EventData, JoystickManager, JoystickOutputData} from 'nipplejs';
 
 interface Props extends MainStoreProps {}
 interface State {
   isSlow: boolean;
 }
+
+const leftJoystickOptions = {
+  mode: 'static',
+  color: 'white',
+  size: 70,
+  position: {
+    top: '70%',
+    left: '50%',
+  },
+} as const;
+const rightJoystickOptions = {
+  mode: 'static',
+  color: 'white',
+  size: 70,
+  position: {
+    top: '70%',
+    left: '50%',
+  },
+  lockX: true,
+  lockY: true,
+} as const;
+const styles = {
+  leftJoyStick: {
+    position: 'absolute',
+    height: '50%',
+    width: '30%',
+    bottom: 0,
+    left: 0,
+    background: 'transparent',
+  },
+  rightJoystick: {
+    position: 'absolute',
+    height: '50%',
+    width: '30%',
+    bottom: 0,
+    right: 0,
+    background: 'transparent',
+  },
+} as const;
 
 @inject(MainStoreName)
 @observer
@@ -174,6 +217,7 @@ export class GameCanvas extends React.Component<Props, State> {
           width={boardWidth * tileSize}
           height={boardHeight * tileSize}
         />
+        {isMobile() && <MobileControls />}
       </>
     );
   }
@@ -205,3 +249,73 @@ export class GameCanvas extends React.Component<Props, State> {
     return rgb;
   }
 }
+
+const MobileControls: FC = () => {
+  const managerListenerMove = useCallback((manager: JoystickManager) => {
+    let canMove = true;
+    const onMove = (evt: EventData, stick: JoystickOutputData) => {
+      if (!canMove) return;
+      canMove = false;
+      switch (true) {
+        case stick.vector.x < -0.3:
+          GameInstance.mainInstance.moveLeft();
+          break;
+        case stick.vector.x > 0.3:
+          GameInstance.mainInstance.moveRight();
+          break;
+        case stick.vector.y > 0.3:
+          GameInstance.mainInstance.moveUp();
+          break;
+        case stick.vector.y < -0.3:
+          GameInstance.mainInstance.moveDown();
+          break;
+      }
+    };
+
+    const onEnd = () => {
+      canMove = true;
+    };
+
+    manager.on('move', onMove);
+    manager.on('end', onEnd);
+    return () => {
+      manager.off('move', onMove);
+      manager.off('end', onEnd);
+    };
+  }, []);
+
+  const managerListenerShoot = useCallback((manager: any) => {
+    let canSwap = true;
+    const onMove = (e: any, stick: any) => {
+      if (!canSwap) return;
+      canSwap = false;
+      GameInstance.mainInstance.swap();
+    };
+
+    const onEnd = () => {
+      canSwap = true;
+    };
+
+    manager.on('move', onMove);
+    manager.on('end', onEnd);
+    return () => {
+      manager.off('move', onMove);
+      manager.off('end', onEnd);
+    };
+  }, []);
+
+  return (
+    <>
+      <JoyStick
+        options={leftJoystickOptions}
+        containerStyle={styles.leftJoyStick}
+        managerListener={managerListenerMove}
+      />
+      <JoyStick
+        options={rightJoystickOptions}
+        containerStyle={styles.rightJoystick}
+        managerListener={managerListenerShoot}
+      />
+    </>
+  );
+};
