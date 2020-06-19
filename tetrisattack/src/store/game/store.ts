@@ -27,13 +27,20 @@ export class GameStore {
     const result = (window as any).eval(sc);
 
     const gameLogic = new GameInstance();
-    gameLogic.board = new GameBoard();
+    gameLogic.board = new GameBoard(
+      `
+rrbbgg
+bbbrbr
+rbryyt
+rtbbyt
+ybtybb`
+    );
     gameLogic.board.tick();
     setInterval(() => {
       gameLogic.board.tick();
     }, 16);
     GameInstance.mainInstance = gameLogic;
-    gameLogic.reset();
+    // gameLogic.reset();
     // this.aiScript = new result.TetrisAttackAI(gameLogic);
   }
 }

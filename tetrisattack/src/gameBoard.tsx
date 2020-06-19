@@ -1,56 +1,121 @@
 import {AnimationConstants, boardHeight, boardWidth, tileSize} from './store/game/gameInstance';
 import {GameTile} from './gameTile';
 import {unreachable} from './types/unreachable';
-import {randomElement} from './utils/utilts';
+import {groupBy, randomElement} from './utils/utilts';
 import {TetrisAttackAssets} from './assetManager';
 
 export type PopAnimation = {
-  queuedPops: GameTile[];
-  popAnimationIndex: number;
   matchPhase: 'blink' | 'solid' | 'pop' | 'postPop';
   matchTimer: number;
   popAnimation: {
     comboCount: number;
-    x: number;
     startingY: number;
     tick: number;
+    x: number;
   };
+  popAnimationIndex: number;
+  queuedPops: GameTile[];
+};
+
+export type ComboTracker = {
+  aboveY: number;
+  timer: number;
+  x: number;
 };
 
 export type SwapAnimation = {
-  y: number;
+  swapTickCount: number;
   x1: number;
   x2: number;
-  swapTickCount: number;
+  y: number;
 };
 export type DroppingAnimation = {
-  bouncingTiles: GameTile[];
   bottomY: number;
-  x: number;
-  dropTickCount: number;
+  bouncingTiles: GameTile[];
+  comboParticipatingTiles: GameTile[];
+  dropBouncePhase: 'not-started' | 'regular' | 'low' | 'high' | 'mid';
 
   dropBounceTick: number;
-  dropBouncePhase: 'not-started' | 'regular' | 'low' | 'high' | 'mid';
+  dropTickCount: number;
+  x: number;
 };
 
 export type TileColor = 'green' | 'purple' | 'red' | 'yellow' | 'teal' | 'blue';
 export const GameTiles: TileColor[] = ['green', 'purple', 'red' /*, 'yellow', 'teal', 'blue'*/];
 
 export class GameBoard {
-  constructor() {
-    for (let i = 0; i < 15; i++) {
-      if (!this.getTile(0, i)) {
-        this.fillRandom(i);
+  assets!: {
+    block: {
+      black: {[color in TileColor]: HTMLCanvasElement};
+      bounceHigh: {[color in TileColor]: HTMLCanvasElement};
+      bounceLow: {[color in TileColor]: HTMLCanvasElement};
+      bounceMid: {[color in TileColor]: HTMLCanvasElement};
+      dark: {[color in TileColor]: HTMLCanvasElement};
+      popped: {[color in TileColor]: HTMLCanvasElement};
+      regular: {[color in TileColor]: HTMLCanvasElement};
+      transparent: {[color in TileColor]: HTMLCanvasElement};
+    };
+    boxes: {
+      pop: HTMLCanvasElement;
+      repeat: HTMLCanvasElement;
+    };
+    numbers: {
+      10: HTMLCanvasElement;
+      11: HTMLCanvasElement;
+      12: HTMLCanvasElement;
+      13: HTMLCanvasElement;
+      14: HTMLCanvasElement;
+      15: HTMLCanvasElement;
+      16: HTMLCanvasElement;
+      17: HTMLCanvasElement;
+      18: HTMLCanvasElement;
+      19: HTMLCanvasElement;
+      2: HTMLCanvasElement;
+      3: HTMLCanvasElement;
+      4: HTMLCanvasElement;
+      5: HTMLCanvasElement;
+      6: HTMLCanvasElement;
+      7: HTMLCanvasElement;
+      8: HTMLCanvasElement;
+      9: HTMLCanvasElement;
+    };
+  };
+
+  boardOffsetPosition = tileSize * (boardHeight / 2);
+  comboTrackers: ComboTracker[] = [];
+  currentCombo: number = 0;
+  cursor: {x: number; y: number} = {x: 0, y: 0};
+  droppingColumns: DroppingAnimation[] = [];
+  popAnimations: PopAnimation[] = [];
+  speed = 10;
+  swapAnimation?: SwapAnimation;
+  tickCount = 0;
+  tiles: GameTile[] = [];
+  topMostRow = 0;
+
+  constructor(start?: string) {
+    let lowestY = 0;
+    if (start) {
+      const rows = start
+        .split('\n')
+        .map((a) => a.trim())
+        .filter((a) => a);
+      for (let y = 0; y < rows.length; y++) {
+        for (let x = 0; x < rows[y].length; x++) {
+          const color = this.charToColor(rows[y].charAt(x));
+          this.tiles.push(new GameTile(this, color, true, x, y));
+        }
+        lowestY = y + 1;
       }
     }
+    for (let y = lowestY; y < lowestY + 15; y++) {
+      this.fillRandom(y);
+    }
   }
-  tiles: GameTile[] = [];
-  cursor: {x: number; y: number} = {x: 0, y: 0};
-  popAnimations: PopAnimation[] = [];
-  swapAnimation?: SwapAnimation;
-  droppingColumns: DroppingAnimation[] = [];
 
-  topMostRow = 0;
+  get boardPaused() {
+    return this.popAnimations.length > 0;
+  }
   get lowestVisibleRow() {
     for (let y = this.topMostRow; y < 10000; y++) {
       if (this.boardOffsetPosition - y * tileSize <= 0) {
@@ -60,13 +125,178 @@ export class GameBoard {
     return 10000;
   }
 
-  boardOffsetPosition = tileSize * (boardHeight / 2);
-  speed = 10;
+  draw(context: CanvasRenderingContext2D) {
+    context.save();
 
-  tickCount = 0;
+    context.translate(0, boardHeight * tileSize - this.boardOffsetPosition);
+    context.lineWidth = 1;
+    for (let y = this.topMostRow; y < this.lowestVisibleRow + 1; y++) {
+      for (let x = 0; x < boardWidth; x++) {
+        const tile = this.getTile(x, y);
+        if (tile) tile.draw(context);
+        if (y === this.lowestVisibleRow) {
+          context.fillStyle = '#00000099';
+          context.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+        }
+      }
+    }
 
-  get boardPaused() {
-    return this.popAnimations.length > 0;
+    const selectionBox = TetrisAttackAssets.assets['game.selectionBox'].image;
+    context.drawImage(
+      selectionBox,
+      this.cursor.x * tileSize - 4,
+      this.cursor.y * tileSize - 4,
+      tileSize * 2 + 8,
+      tileSize + 8
+    );
+
+    for (const popAnimation of this.popAnimations) {
+      if (popAnimation.popAnimation.tick > 2) {
+        let offset = GameBoard.getBoxOffset(popAnimation.popAnimation.tick);
+        if (offset === -1) {
+          continue;
+        }
+
+        if (popAnimation.queuedPops.length > 3) {
+          this.drawBox(
+            context,
+            'pop',
+            popAnimation.queuedPops.length as keyof GameBoard['assets']['numbers'],
+            popAnimation.popAnimation.x,
+            popAnimation.popAnimation.startingY - offset
+          );
+          offset += tileSize;
+        }
+        if (popAnimation.popAnimation.comboCount > 1) {
+          this.drawBox(
+            context,
+            'repeat',
+            popAnimation.popAnimation.comboCount as keyof GameBoard['assets']['numbers'],
+            popAnimation.popAnimation.x,
+            popAnimation.popAnimation.startingY - offset
+          );
+        }
+      }
+      popAnimation.popAnimation.tick++;
+    }
+
+    context.restore();
+  }
+
+  drawBox(
+    context: CanvasRenderingContext2D,
+    type: 'pop' | 'repeat',
+    count: keyof GameBoard['assets']['numbers'],
+    x: number,
+    y: number
+  ) {
+    context.drawImage(this.assets.boxes[type], x, y, tileSize, tileSize - 2);
+    switch (type) {
+      case 'repeat':
+        if (this.assets.numbers[count]) {
+          context.drawImage(this.assets.numbers[count], x + 6 * 2, y + 3 * 2, 10 * 2, 9 * 2);
+        }
+        break;
+      case 'pop':
+        if (this.assets.numbers[count]) {
+          context.drawImage(this.assets.numbers[count], x + 3 * 2, y + 3 * 2, 10 * 2, 9 * 2);
+        }
+        break;
+      default:
+        throw unreachable(type);
+    }
+  }
+
+  fillRandom(y: number) {
+    for (let x = 0; x < boardWidth; x++) {
+      this.tiles.push(new GameTile(this, randomElement(GameTiles), true, x, y));
+    }
+  }
+
+  getTile(x: number, y: number) {
+    return this.tiles.find((a) => a.x === x && a.y === y);
+  }
+
+  isEmpty(y: number) {
+    for (let x = 0; x < boardWidth; x++) {
+      if (this.getTile(x, y)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  loadAssetSheets(
+    blockAssetSheet: HTMLCanvasElement[][],
+    comboBoxesAssetSheet: HTMLCanvasElement[][],
+    numbersAssetSheet: HTMLCanvasElement[][]
+  ) {
+    function convertToColor(assets: HTMLCanvasElement[]): {[color in TileColor]: HTMLCanvasElement} {
+      return {
+        green: assets[0],
+        purple: assets[1],
+        red: assets[2],
+        yellow: assets[3],
+        teal: assets[4],
+        blue: assets[5],
+      };
+    }
+
+    this.assets = {
+      block: {
+        regular: convertToColor(blockAssetSheet[0]),
+        bounceHigh: convertToColor(blockAssetSheet[1]),
+        bounceMid: convertToColor(blockAssetSheet[2]),
+        bounceLow: convertToColor(blockAssetSheet[3]),
+        dark: convertToColor(blockAssetSheet[4]),
+        popped: convertToColor(blockAssetSheet[5]),
+        transparent: convertToColor(blockAssetSheet[6]),
+        black: convertToColor(blockAssetSheet[7]),
+      },
+      boxes: {
+        pop: comboBoxesAssetSheet[0][0],
+        repeat: comboBoxesAssetSheet[0][1],
+      },
+      numbers: {
+        2: numbersAssetSheet[0][0],
+        3: numbersAssetSheet[0][1],
+        4: numbersAssetSheet[0][2],
+        5: numbersAssetSheet[0][3],
+        6: numbersAssetSheet[0][4],
+        7: numbersAssetSheet[0][5],
+        8: numbersAssetSheet[0][6],
+        9: numbersAssetSheet[0][7],
+        10: numbersAssetSheet[0][8],
+        11: numbersAssetSheet[0][9],
+        12: numbersAssetSheet[0][10],
+        13: numbersAssetSheet[0][11],
+        14: numbersAssetSheet[0][13],
+        15: numbersAssetSheet[0][14],
+        16: numbersAssetSheet[0][15],
+        17: numbersAssetSheet[0][16],
+        18: numbersAssetSheet[0][17],
+        19: numbersAssetSheet[0][18],
+      },
+    };
+  }
+
+  swap(): boolean {
+    const x = this.cursor.x;
+    const y = this.cursor.y;
+    const tile = this.getTile(x, y);
+    const tileRight = this.getTile(x + 1, y);
+    if ((!tile || tile.swappable) && (!tileRight || tileRight.swappable)) {
+      this.swapAnimation = {
+        swapTickCount: AnimationConstants.swapTicks,
+        x1: x,
+        x2: x + 1,
+        y,
+      };
+      tile?.setSwappable(false);
+      tileRight?.setSwappable(false);
+      return true;
+    }
+    return false;
   }
 
   tick() {
@@ -171,6 +401,15 @@ export class GameBoard {
             popAnimation.matchTimer--;
           } else {
             this.popAnimations.splice(i, 1);
+
+            for (const group of groupBy(popAnimation.queuedPops, (a) => a.x)) {
+              this.comboTrackers.push({
+                x: group.key,
+                timer: 2,
+                aboveY: Math.max(...group.items.map((a) => a.y)),
+              });
+            }
+
             for (const tile of popAnimation.queuedPops) {
               this.popTile(tile);
             }
@@ -227,8 +466,12 @@ export class GameBoard {
         }
       }
     }
+
     if (queuedPops.length > 0) {
       const topMostLeftMostTile = [...queuedPops].sort((a, b) => a.y * boardWidth + a.x - (b.y * boardWidth + b.x))[0];
+      if (queuedPops.some((a) => a.comboViable)) {
+        this.currentCombo++;
+      }
       const popAnimation: PopAnimation = {
         queuedPops: queuedPops.reverse(),
         popAnimationIndex: 0,
@@ -237,11 +480,15 @@ export class GameBoard {
         popAnimation: {
           startingY: topMostLeftMostTile.drawY,
           x: topMostLeftMostTile.drawX,
-          comboCount: 4,
+          comboCount: this.currentCombo,
           tick: 0,
         },
       };
       this.popAnimations.push(popAnimation);
+    }
+
+    for (const tile of this.tiles) {
+      tile.setComboViable(false);
     }
 
     for (let i = this.droppingColumns.length - 1; i >= 0; i--) {
@@ -274,6 +521,10 @@ export class GameBoard {
               for (const gameTile of droppingPiece.bouncingTiles) {
                 gameTile.drawType = 'bounce-high';
                 gameTile.setSwappable(true);
+              }
+              for (const comboParticipatingTile of droppingPiece.comboParticipatingTiles) {
+                debugger;
+                comboParticipatingTile.setComboViable(true);
               }
               break;
             case 'high':
@@ -327,17 +578,60 @@ export class GameBoard {
         if (tile && tile.swappable) {
           if (!this.getTile(tile.x, tile.y + 1)) {
             tile.setSwappable(false);
+            const fellBecauseOfPop = this.comboTrackers.find((a) => a.x === tile.x && tile.y < a.aboveY);
+
+            const comboParticipatingTiles: GameTile[] = [];
+            if (fellBecauseOfPop) {
+              for (let fallingY = tile.y; fallingY >= this.topMostRow; fallingY--) {
+                const fallingTile = this.getTile(tile.x, fallingY);
+                if (fallingTile) comboParticipatingTiles.push(fallingTile);
+              }
+            }
+
             this.droppingColumns.push({
-              dropTickCount: AnimationConstants.dropStallTicks,
+              dropTickCount: fellBecauseOfPop ? 1 : AnimationConstants.dropStallTicks,
               bouncingTiles: [],
               dropBounceTick: 0,
               x: tile.x,
               bottomY: tile.y,
               dropBouncePhase: 'not-started',
+              comboParticipatingTiles,
             });
           }
         }
       }
+    }
+    for (let i = this.comboTrackers.length - 1; i >= 0; i--) {
+      this.comboTrackers[i].timer--;
+      if (this.comboTrackers[i].timer === 0) {
+        this.comboTrackers.splice(i, 1);
+      }
+    }
+  }
+
+  private charToColor(s: string): TileColor {
+    switch (s) {
+      case 'g':
+        return 'green';
+      case 'p':
+        return 'purple';
+      case 'r':
+        return 'red';
+      case 'y':
+        return 'yellow';
+      case 't':
+        return 'teal';
+      case 'b':
+        return 'blue';
+    }
+    throw new Error('Color not found');
+  }
+
+  private popTile(tile: GameTile) {
+    if (this.tiles.indexOf(tile) === -1) {
+      throw new Error('bad pop');
+    } else {
+      this.tiles.splice(this.tiles.indexOf(tile), 1);
     }
   }
 
@@ -396,221 +690,6 @@ export class GameBoard {
       default:
         throw unreachable(direction);
     }
-  }
-
-  assets!: {
-    block: {
-      regular: {[color in TileColor]: HTMLCanvasElement};
-      bounceLow: {[color in TileColor]: HTMLCanvasElement};
-      bounceHigh: {[color in TileColor]: HTMLCanvasElement};
-      bounceMid: {[color in TileColor]: HTMLCanvasElement};
-      dark: {[color in TileColor]: HTMLCanvasElement};
-      popped: {[color in TileColor]: HTMLCanvasElement};
-      transparent: {[color in TileColor]: HTMLCanvasElement};
-      black: {[color in TileColor]: HTMLCanvasElement};
-    };
-    boxes: {
-      pop: HTMLCanvasElement;
-      repeat: HTMLCanvasElement;
-    };
-    numbers: {
-      2: HTMLCanvasElement;
-      3: HTMLCanvasElement;
-      4: HTMLCanvasElement;
-      5: HTMLCanvasElement;
-      6: HTMLCanvasElement;
-      7: HTMLCanvasElement;
-      8: HTMLCanvasElement;
-      9: HTMLCanvasElement;
-      10: HTMLCanvasElement;
-      11: HTMLCanvasElement;
-      12: HTMLCanvasElement;
-      13: HTMLCanvasElement;
-      14: HTMLCanvasElement;
-      15: HTMLCanvasElement;
-      16: HTMLCanvasElement;
-      17: HTMLCanvasElement;
-      18: HTMLCanvasElement;
-      19: HTMLCanvasElement;
-    };
-  };
-
-  loadAssetSheets(
-    blockAssetSheet: HTMLCanvasElement[][],
-    comboBoxesAssetSheet: HTMLCanvasElement[][],
-    numbersAssetSheet: HTMLCanvasElement[][]
-  ) {
-    function convertToColor(assets: HTMLCanvasElement[]): {[color in TileColor]: HTMLCanvasElement} {
-      return {
-        green: assets[0],
-        purple: assets[1],
-        red: assets[2],
-        yellow: assets[3],
-        teal: assets[4],
-        blue: assets[5],
-      };
-    }
-
-    this.assets = {
-      block: {
-        regular: convertToColor(blockAssetSheet[0]),
-        bounceHigh: convertToColor(blockAssetSheet[1]),
-        bounceMid: convertToColor(blockAssetSheet[2]),
-        bounceLow: convertToColor(blockAssetSheet[3]),
-        dark: convertToColor(blockAssetSheet[4]),
-        popped: convertToColor(blockAssetSheet[5]),
-        transparent: convertToColor(blockAssetSheet[6]),
-        black: convertToColor(blockAssetSheet[7]),
-      },
-      boxes: {
-        pop: comboBoxesAssetSheet[0][0],
-        repeat: comboBoxesAssetSheet[0][1],
-      },
-      numbers: {
-        2: numbersAssetSheet[0][0],
-        3: numbersAssetSheet[0][1],
-        4: numbersAssetSheet[0][2],
-        5: numbersAssetSheet[0][3],
-        6: numbersAssetSheet[0][4],
-        7: numbersAssetSheet[0][5],
-        8: numbersAssetSheet[0][6],
-        9: numbersAssetSheet[0][7],
-        10: numbersAssetSheet[0][8],
-        11: numbersAssetSheet[0][9],
-        12: numbersAssetSheet[0][10],
-        13: numbersAssetSheet[0][11],
-        14: numbersAssetSheet[0][13],
-        15: numbersAssetSheet[0][14],
-        16: numbersAssetSheet[0][15],
-        17: numbersAssetSheet[0][16],
-        18: numbersAssetSheet[0][17],
-        19: numbersAssetSheet[0][18],
-      },
-    };
-  }
-
-  fillRandom(y: number) {
-    for (let x = 0; x < boardWidth; x++) {
-      this.tiles.push(new GameTile(this, randomElement(GameTiles), true, x, y));
-    }
-  }
-
-  isEmpty(y: number) {
-    for (let x = 0; x < boardWidth; x++) {
-      if (this.getTile(x, y)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  swap(): boolean {
-    const x = this.cursor.x;
-    const y = this.cursor.y;
-    const tile = this.getTile(x, y);
-    const tileRight = this.getTile(x + 1, y);
-    if ((!tile || tile.swappable) && (!tileRight || tileRight.swappable)) {
-      this.swapAnimation = {
-        swapTickCount: AnimationConstants.swapTicks,
-        x1: x,
-        x2: x + 1,
-        y,
-      };
-      tile?.setSwappable(false);
-      tileRight?.setSwappable(false);
-      return true;
-    }
-    return false;
-  }
-
-  getTile(x: number, y: number) {
-    return this.tiles.find((a) => a.x === x && a.y === y);
-  }
-
-  private popTile(tile: GameTile) {
-    if (this.tiles.indexOf(tile) === -1) {
-      throw new Error('bad pop');
-    } else {
-      this.tiles.splice(this.tiles.indexOf(tile), 1);
-    }
-  }
-
-  drawBox(
-    context: CanvasRenderingContext2D,
-    type: 'pop' | 'repeat',
-    count: keyof GameBoard['assets']['numbers'],
-    x: number,
-    y: number
-  ) {
-    context.drawImage(this.assets.boxes[type], x, y, tileSize, tileSize - 2);
-    switch (type) {
-      case 'repeat':
-        context.drawImage(this.assets.numbers[count], x + 6 * 2, y + 3 * 2, 10 * 2, 9 * 2);
-        break;
-      case 'pop':
-        context.drawImage(this.assets.numbers[count], x + 3 * 2, y + 3 * 2, 10 * 2, 9 * 2);
-        break;
-      default:
-        throw unreachable(type);
-    }
-  }
-
-  draw(context: CanvasRenderingContext2D) {
-    context.save();
-
-    context.translate(0, boardHeight * tileSize - this.boardOffsetPosition);
-    context.lineWidth = 1;
-    for (let y = this.topMostRow; y < this.lowestVisibleRow + 1; y++) {
-      for (let x = 0; x < boardWidth; x++) {
-        const tile = this.getTile(x, y);
-        if (tile) tile.draw(context);
-        if (y === this.lowestVisibleRow) {
-          context.fillStyle = '#00000099';
-          context.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
-        }
-      }
-    }
-
-    const selectionBox = TetrisAttackAssets.assets['game.selectionBox'].image;
-    context.drawImage(
-      selectionBox,
-      this.cursor.x * tileSize - 4,
-      this.cursor.y * tileSize - 4,
-      tileSize * 2 + 8,
-      tileSize + 8
-    );
-
-    for (const popAnimation of this.popAnimations) {
-      if (popAnimation.popAnimation.tick > 2) {
-        let offset = GameBoard.getBoxOffset(popAnimation.popAnimation.tick);
-        if (offset === -1) {
-          continue;
-        }
-
-        if (popAnimation.queuedPops.length > 3) {
-          this.drawBox(
-            context,
-            'pop',
-            popAnimation.queuedPops.length as keyof GameBoard['assets']['numbers'],
-            popAnimation.popAnimation.x,
-            popAnimation.popAnimation.startingY - offset
-          );
-          offset += tileSize;
-        }
-        if (popAnimation.popAnimation.comboCount > 1) {
-          this.drawBox(
-            context,
-            'repeat',
-            popAnimation.popAnimation.comboCount as keyof GameBoard['assets']['numbers'],
-            popAnimation.popAnimation.x,
-            popAnimation.popAnimation.startingY - offset
-          );
-        }
-      }
-      popAnimation.popAnimation.tick++;
-    }
-
-    context.restore();
   }
 
   static getBoxOffset(tick: number) {

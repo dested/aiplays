@@ -3,6 +3,33 @@ import {unreachable} from './types/unreachable';
 import {GameBoard, TileColor} from './gameBoard';
 
 export class GameTile {
+  /* get droppable() {
+    return this.swappable || this.dropState === 'falling';
+  }*/
+  comboViable: boolean = false;
+  drawType:
+    | 'regular'
+    | 'matched'
+    | 'matched-blink'
+    | 'popping'
+    | 'popped'
+    | 'bounce-low'
+    | 'bounce-high'
+    | 'bounce-mid' = 'regular';
+
+  drawX: number;
+  drawY: number;
+
+  constructor(
+    public gameBoard: GameBoard,
+    public color: TileColor,
+    public swappable: boolean,
+    public x: number,
+    public y: number
+  ) {
+    this.drawX = this.x * tileSize;
+    this.drawY = this.y * tileSize;
+  }
   draw(context: CanvasRenderingContext2D) {
     switch (this.drawType) {
       case 'matched':
@@ -60,22 +87,16 @@ export class GameTile {
     }
   }
 
-  drawX: number;
-  drawY: number;
+  pop() {
+    this.swappable = false;
+  }
 
-  /* get droppable() {
-    return this.swappable || this.dropState === 'falling';
-  }*/
+  setComboViable(comboViable: boolean) {
+    this.comboViable = comboViable;
+  }
 
-  constructor(
-    public gameBoard: GameBoard,
-    public color: TileColor,
-    public swappable: boolean,
-    public x: number,
-    public y: number
-  ) {
-    this.drawX = this.x * tileSize;
-    this.drawY = this.y * tileSize;
+  setSwappable(swappable: boolean) {
+    this.swappable = swappable;
   }
 
   setX(x: number) {
@@ -87,23 +108,5 @@ export class GameTile {
     this.drawY = this.y * tileSize;
   }
 
-  setSwappable(swappable: boolean) {
-    this.swappable = swappable;
-  }
-
-  drawType:
-    | 'regular'
-    | 'matched'
-    | 'matched-blink'
-    | 'popping'
-    | 'popped'
-    | 'bounce-low'
-    | 'bounce-high'
-    | 'bounce-mid' = 'regular';
-
   tick() {}
-
-  pop() {
-    this.swappable = false;
-  }
 }

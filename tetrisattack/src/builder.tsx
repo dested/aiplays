@@ -14,12 +14,11 @@ interface State {}
 @inject(MainStoreName)
 @observer
 export class Component extends React.Component<Props, State> {
+  codeEditor = React.createRef<CodeEditor>();
   constructor(props: Props, context: any) {
     super(props, context);
     this.state = {};
   }
-
-  codeEditor = React.createRef<CodeEditor>();
 
   render() {
     return (

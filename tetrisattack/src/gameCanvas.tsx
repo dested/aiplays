@@ -17,17 +17,41 @@ interface State {
 @inject(MainStoreName)
 @observer
 export class GameCanvas extends React.Component<Props, State> {
+  firstRender = false;
+
+  logicInterval: any;
+  scriptInterval: any;
   private blockAssetSheet?: HTMLCanvasElement[][];
-  private numbersAssetSheet?: HTMLCanvasElement[][];
+
+  private canvas = React.createRef<HTMLCanvasElement>();
+  private canvasContext!: CanvasRenderingContext2D;
   private comboBoxesAssetSheet?: HTMLCanvasElement[][];
+  private numbersAssetSheet?: HTMLCanvasElement[][];
   constructor(props: Props) {
     super(props);
 
     this.state = {isSlow: true};
   }
+  canvasRender() {
+    this.canvasContext.clearRect(0, 0, this.canvas.current!.width, this.canvas.current!.height);
+    if (!GameInstance.mainInstance || !this.blockAssetSheet || !this.comboBoxesAssetSheet || !this.numbersAssetSheet) {
+      window.requestAnimationFrame(() => this.canvasRender());
+      return;
+    }
+    if (!this.firstRender) {
+      GameInstance.mainInstance.board.loadAssetSheets(
+        this.blockAssetSheet,
+        this.comboBoxesAssetSheet,
+        this.numbersAssetSheet
+      );
+      this.firstRender = true;
+    }
+    const board = GameInstance.mainInstance.board;
 
-  private canvas = React.createRef<HTMLCanvasElement>();
-  private canvasContext!: CanvasRenderingContext2D;
+    board.draw(this.canvasContext);
+
+    window.requestAnimationFrame(() => this.canvasRender());
+  }
 
   async componentDidMount() {
     const sheets = await Promise.all([
@@ -127,24 +151,6 @@ export class GameCanvas extends React.Component<Props, State> {
     this.canvasRender();
   }
 
-  logicInterval: any;
-  scriptInterval: any;
-  toggleSpeed = () => {
-    clearInterval(this.logicInterval);
-    clearInterval(this.scriptInterval);
-    this.setState({isSlow: !this.state.isSlow});
-    const tetrisTickDuration = this.state.isSlow ? 5000 : 100;
-    this.logicInterval = setInterval(() => {
-      GameInstance.mainInstance.tick();
-    }, tetrisTickDuration);
-
-    this.scriptInterval = setInterval(() => {
-      if (gameStore.aiScript) {
-        gameStore.aiScript.tick();
-      }
-    }, tetrisTickDuration / 5);
-  };
-
   render() {
     return (
       <>
@@ -171,28 +177,21 @@ export class GameCanvas extends React.Component<Props, State> {
       </>
     );
   }
+  toggleSpeed = () => {
+    clearInterval(this.logicInterval);
+    clearInterval(this.scriptInterval);
+    this.setState({isSlow: !this.state.isSlow});
+    const tetrisTickDuration = this.state.isSlow ? 5000 : 100;
+    this.logicInterval = setInterval(() => {
+      GameInstance.mainInstance.tick();
+    }, tetrisTickDuration);
 
-  firstRender = false;
-  canvasRender() {
-    this.canvasContext.clearRect(0, 0, this.canvas.current!.width, this.canvas.current!.height);
-    if (!GameInstance.mainInstance || !this.blockAssetSheet || !this.comboBoxesAssetSheet || !this.numbersAssetSheet) {
-      window.requestAnimationFrame(() => this.canvasRender());
-      return;
-    }
-    if (!this.firstRender) {
-      GameInstance.mainInstance.board.loadAssetSheets(
-        this.blockAssetSheet,
-        this.comboBoxesAssetSheet,
-        this.numbersAssetSheet
-      );
-      this.firstRender = true;
-    }
-    const board = GameInstance.mainInstance.board;
-
-    board.draw(this.canvasContext);
-
-    window.requestAnimationFrame(() => this.canvasRender());
-  }
+    this.scriptInterval = setInterval(() => {
+      if (gameStore.aiScript) {
+        gameStore.aiScript.tick();
+      }
+    }, tetrisTickDuration / 5);
+  };
 
   static colorLuminance(hex: string, lum: number) {
     hex = hex.replace(/[^0-9a-f]/gi, '');
