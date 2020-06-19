@@ -5,7 +5,7 @@ import {groupBy, randomElement} from './utils/utilts';
 import {TetrisAttackAssets} from './assetManager';
 
 export type PopAnimation = {
-  matchPhase: 'blink' | 'solid' | 'pop' | 'postPop';
+  matchPhase: 'blink' | 'solid' | 'pop';
   matchTimer: number;
   popAnimation: {
     comboCount: number;
@@ -396,34 +396,26 @@ export class GameBoard {
           if (popAnimation.matchTimer > 0) {
             popAnimation.matchTimer--;
           } else {
-            if (popAnimation.popAnimationIndex < popAnimation.queuedPops.length) {
+            if (popAnimation.popAnimationIndex < popAnimation.queuedPops.length - 1) {
               popAnimation.popAnimationIndex++;
               popAnimation.matchPhase = 'pop';
               popAnimation.matchTimer = AnimationConstants.matchPopTicksEach;
             } else {
-              popAnimation.matchPhase = 'postPop';
-              popAnimation.matchTimer = AnimationConstants.matchPostPopTicks;
-            }
-          }
-          break;
-        case 'postPop':
-          if (popAnimation.matchTimer > 0) {
-            popAnimation.matchTimer--;
-          } else {
-            this.popAnimations.splice(i, 1);
+              this.popAnimations.splice(i, 1);
 
-            for (const group of groupBy(popAnimation.queuedPops, (a) => a.x)) {
-              this.comboTrackers.push({
-                x: group.key,
-                timer: 2,
-                aboveY: Math.max(...group.items.map((a) => a.y)),
-              });
-            }
+              for (const group of groupBy(popAnimation.queuedPops, (a) => a.x)) {
+                this.comboTrackers.push({
+                  x: group.key,
+                  timer: 2,
+                  aboveY: Math.max(...group.items.map((a) => a.y)),
+                });
+              }
 
-            for (const tile of popAnimation.queuedPops) {
-              this.popTile(tile);
+              for (const tile of popAnimation.queuedPops) {
+                this.popTile(tile);
+              }
+              continue;
             }
-            continue;
           }
           break;
       }
@@ -448,8 +440,6 @@ export class GameBoard {
               }
             }
             break;
-          case 'postPop':
-            break;
           case undefined:
             break;
         }
@@ -470,13 +460,13 @@ export class GameBoard {
         if (tile.x < boardWidth - 1) {
           total = this.testTile(queuedPops, tile.color, 'right', tile.x + 1, tile.y, 1);
           if (total >= 3) {
-            tile.pop();
+            tile.setSwappable(false);
             queuedPops.push(tile);
           }
         }
         total = this.testTile(queuedPops, tile.color, 'down', tile.x, tile.y + 1, 1);
         if (total >= 3) {
-          tile.pop();
+          tile.setSwappable(false);
           queuedPops.push(tile);
         }
       }
@@ -605,7 +595,7 @@ export class GameBoard {
             }
 
             this.droppingColumns.push({
-              dropTickCount: fellBecauseOfPop ? 1 : AnimationConstants.dropStallTicks,
+              dropTickCount: AnimationConstants.dropStallTicks,
               bouncingTiles: [],
               dropBounceTick: 0,
               x: tile.x,
@@ -662,51 +652,47 @@ export class GameBoard {
     y: number,
     count: number
   ): number {
-    const gameTile = this.getTile(x, y);
-    if (
-      !gameTile ||
-      !gameTile.swappable ||
-      this.droppingColumns.find((a) => a.x === x && a.dropBouncePhase === 'not-started')
-    )
+    const tile = this.getTile(x, y);
+    if (!tile || !tile.swappable || this.droppingColumns.find((a) => a.x === x && a.dropBouncePhase === 'not-started'))
       return count;
 
     switch (direction) {
       case 'left':
-        if (gameTile.color === color) {
+        if (tile.color === color) {
           const total = this.testTile(queuedPops, color, 'left', x - 1, y, count + 1);
           if (total >= 3) {
-            queuedPops.push(gameTile);
-            gameTile.pop();
+            queuedPops.push(tile);
+            tile.setSwappable(false);
           }
           return total;
         }
         return count;
       case 'right':
-        if (gameTile.color === color) {
+        if (tile.color === color) {
           const total = this.testTile(queuedPops, color, 'right', x + 1, y, count + 1);
           if (total >= 3) {
-            queuedPops.push(gameTile);
-            gameTile.pop();
+            queuedPops.push(tile);
+            tile.setSwappable(false);
           }
           return total;
         }
         return count;
       case 'up':
-        if (gameTile.color === color) {
+        if (tile.color === color) {
           const total = this.testTile(queuedPops, color, 'up', x, y - 1, count + 1);
           if (total >= 3) {
-            queuedPops.push(gameTile);
-            gameTile.pop();
+            queuedPops.push(tile);
+            tile.setSwappable(false);
           }
           return total;
         }
         return count;
       case 'down':
-        if (y < this.lowestVisibleRow && gameTile.color === color) {
+        if (y < this.lowestVisibleRow && tile.color === color) {
           const total = this.testTile(queuedPops, color, 'down', x, y + 1, count + 1);
           if (total >= 3) {
-            queuedPops.push(gameTile);
-            gameTile.pop();
+            queuedPops.push(tile);
+            tile.setSwappable(false);
           }
           return total;
         }

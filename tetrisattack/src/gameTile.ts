@@ -87,10 +87,6 @@ export class GameTile {
     }
   }
 
-  pop() {
-    this.swappable = false;
-  }
-
   setComboViable(comboViable: boolean) {
     this.comboViable = comboViable;
   }

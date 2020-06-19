@@ -17,7 +17,6 @@ export const AnimationConstants = {
   matchSolidTicks: 4,
   matchPopTicksEach: 3,
 */
-  matchPostPopTicks: 3,
 
   cursorFlex: 32,
 };
