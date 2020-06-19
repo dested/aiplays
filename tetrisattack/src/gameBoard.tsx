@@ -85,6 +85,7 @@ export class GameBoard {
       }
 
       const maxY = Math.max(...this.tiles.map((a) => a.y)) + 1;
+      console.log(maxY, this.topMostRow, maxY - this.topMostRow, maxY - this.topMostRow < 15);
       if (maxY - this.topMostRow < 15) {
         for (let y = maxY; y < maxY + this.topMostRow; y++) {
           this.fillRandom(y);
@@ -161,7 +162,10 @@ export class GameBoard {
           if (popAnimation.matchTimer > 0) {
             popAnimation.matchTimer--;
           } else {
-            this.popAnimations.splice(i,1);
+            this.popAnimations.splice(i, 1);
+            for (const tile of popAnimation.queuedPops) {
+              this.popTile(tile);
+            }
             continue;
           }
           break;
@@ -188,7 +192,6 @@ export class GameBoard {
             }
             break;
           case 'postPop':
-            this.popTile(tile);
             break;
           case undefined:
             break;
@@ -200,7 +203,7 @@ export class GameBoard {
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
       for (let x = 0; x < boardWidth; x++) {
         const tile = this.getTile(x, y);
-        if (!tile || !tile.swappable) continue;
+        if (!tile || !tile.swappable || !this.getTile(x, y + 1)) continue;
         let total: number;
         if (tile.x < boardWidth - 1) {
           total = this.testTile(queuedPops, tile.color, 'right', tile.x + 1, tile.y, 1);
@@ -237,7 +240,7 @@ export class GameBoard {
             for (let j = droppingPiece.bouncingTiles.length - 1; j >= 0; j--) {
               const gameTile = droppingPiece.bouncingTiles[j];
               if (this.popAnimations.find((a) => a.queuedPops.some((t) => t === gameTile))) {
-                droppingPiece.bouncingTiles.splice(j,1);
+                droppingPiece.bouncingTiles.splice(j, 1);
               }
             }
           }
@@ -269,7 +272,7 @@ export class GameBoard {
               for (const gameTile of droppingPiece.bouncingTiles) {
                 gameTile.drawType = 'regular';
               }
-              this.droppingColumns.splice(i,1);
+              this.droppingColumns.splice(i, 1);
               break;
           }
         }
@@ -332,7 +335,7 @@ export class GameBoard {
     count: number
   ): number {
     const gameTile = this.getTile(x, y);
-    if (!gameTile || !gameTile.swappable) return count;
+    if (!gameTile || !gameTile.swappable || !this.getTile(x, y + 1)) return count;
 
     switch (direction) {
       case 'left':
@@ -454,6 +457,10 @@ export class GameBoard {
   }
 
   private popTile(tile: GameTile) {
-    this.tiles.splice(this.tiles.indexOf(tile),1);
+    if (this.tiles.indexOf(tile) === -1) {
+      throw new Error('bad pop');
+    } else {
+      this.tiles.splice(this.tiles.indexOf(tile), 1);
+    }
   }
 }
