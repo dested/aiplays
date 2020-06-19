@@ -175,28 +175,23 @@ export class GameCanvas extends React.Component<Props, State> {
     const board = GameInstance.mainInstance.board;
     this.canvasContext.save();
 
-    try {
-      this.canvasContext.translate(0, boardHeight * tileSize - board.boardOffsetPosition);
-      this.canvasContext.lineWidth = 1;
-
-      for (let y = board.topMostRow; y < board.lowestVisibleRow + 1; y++) {
-        for (let x = 0; x < boardWidth; x++) {
-          const tile = board.getTile(x, y);
-          if (tile) tile.draw(this.canvasContext);
-        }
+    this.canvasContext.translate(0, boardHeight * tileSize - board.boardOffsetPosition);
+    this.canvasContext.lineWidth = 1;
+    for (let y = board.topMostRow; y < board.lowestVisibleRow + 1; y++) {
+      for (let x = 0; x < boardWidth; x++) {
+        const tile = board.getTile(x, y);
+        if (tile) tile.draw(this.canvasContext);
       }
-
-      const selectionBox = TetrisAttackAssets.assets['game.selectionBox'].image;
-      this.canvasContext.drawImage(
-        selectionBox,
-        board.cursor.x * tileSize - 4,
-        board.cursor.y * tileSize - 4,
-        tileSize * 2 + 8,
-        tileSize + 8
-      );
-    } catch (ex) {
-      console.error(ex);
     }
+
+    const selectionBox = TetrisAttackAssets.assets['game.selectionBox'].image;
+    this.canvasContext.drawImage(
+      selectionBox,
+      board.cursor.x * tileSize - 4,
+      board.cursor.y * tileSize - 4,
+      tileSize * 2 + 8,
+      tileSize + 8
+    );
 
     this.canvasContext.restore();
 
