@@ -29,7 +29,7 @@ export class GameStore {
 
     const gameLogic = new GameInstance();
     const maps = {
-      fiveCombo: `
+      sevenCombo: `
 bgtgbg
 rrbbgg
 bbbrbr
@@ -45,7 +45,7 @@ ytytyt
 `,
     };
     // seed('a');
-    gameLogic.board = new GameBoard(/*maps.fiveCombo*/);
+    gameLogic.board = new GameBoard(maps.sevenCombo);
     gameLogic.board.tick();
     setInterval(() => {
       gameLogic.board.tick();

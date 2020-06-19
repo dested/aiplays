@@ -504,6 +504,14 @@ export class GameBoard {
       if (droppingPiece.dropBouncePhase !== 'not-started') {
         if (droppingPiece.dropBounceTick > 0) {
           droppingPiece.dropBounceTick--;
+          if (droppingPiece.dropBouncePhase === 'low' && droppingPiece.dropBounceTick === 2) {
+            for (const gameTile of droppingPiece.bouncingTiles) {
+              gameTile.setSwappable(true);
+            }
+            for (const comboParticipatingTile of droppingPiece.comboParticipatingTiles) {
+              comboParticipatingTile.setComboViable(true);
+            }
+          }
         } else if (droppingPiece.dropBounceTick === 0) {
           if (this.popAnimations.length > 0) {
             for (let j = droppingPiece.bouncingTiles.length - 1; j >= 0; j--) {
@@ -527,11 +535,8 @@ export class GameBoard {
               droppingPiece.dropBouncePhase = 'high';
               for (const gameTile of droppingPiece.bouncingTiles) {
                 gameTile.drawType = 'bounce-high';
-                gameTile.setSwappable(true);
               }
-              for (const comboParticipatingTile of droppingPiece.comboParticipatingTiles) {
-                comboParticipatingTile.setComboViable(true);
-              }
+
               break;
             case 'high':
               droppingPiece.dropBounceTick = AnimationConstants.dropBounceTicks;
