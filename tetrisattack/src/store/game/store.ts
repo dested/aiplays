@@ -29,11 +29,12 @@ export class GameStore {
     const gameLogic = new GameInstance();
     gameLogic.board = new GameBoard(
       `
+bgtgbg
 rrbbgg
 bbbrbr
-rbryyt
-rtbbyt
-ybtybb`
+rrgybt
+rbbryt
+yrggbb`
     );
     gameLogic.board.tick();
     setInterval(() => {

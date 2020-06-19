@@ -83,7 +83,7 @@ export class GameBoard {
 
   boardOffsetPosition = tileSize * (boardHeight / 2);
   comboTrackers: ComboTracker[] = [];
-  currentCombo: number = 0;
+  comboCount: number = 1;
   cursor: {x: number; y: number} = {x: 0, y: 0};
   droppingColumns: DroppingAnimation[] = [];
   popAnimations: PopAnimation[] = [];
@@ -470,7 +470,7 @@ export class GameBoard {
     if (queuedPops.length > 0) {
       const topMostLeftMostTile = [...queuedPops].sort((a, b) => a.y * boardWidth + a.x - (b.y * boardWidth + b.x))[0];
       if (queuedPops.some((a) => a.comboViable)) {
-        this.currentCombo++;
+        this.comboCount++;
       }
       const popAnimation: PopAnimation = {
         queuedPops: queuedPops.reverse(),
@@ -480,7 +480,7 @@ export class GameBoard {
         popAnimation: {
           startingY: topMostLeftMostTile.drawY,
           x: topMostLeftMostTile.drawX,
-          comboCount: this.currentCombo,
+          comboCount: this.comboCount,
           tick: 0,
         },
       };
@@ -523,7 +523,6 @@ export class GameBoard {
                 gameTile.setSwappable(true);
               }
               for (const comboParticipatingTile of droppingPiece.comboParticipatingTiles) {
-                debugger;
                 comboParticipatingTile.setComboViable(true);
               }
               break;
@@ -600,6 +599,9 @@ export class GameBoard {
           }
         }
       }
+    }
+    if (this.droppingColumns.length === 0 && this.popAnimations.length === 0) {
+      this.comboCount = 1;
     }
     for (let i = this.comboTrackers.length - 1; i >= 0; i--) {
       this.comboTrackers[i].timer--;
