@@ -9,6 +9,11 @@ export type PopAnimation = {
   popAnimationIndex: number;
   matchPhase: 'blink' | 'solid' | 'pop' | 'postPop';
   matchTimer: number;
+  popSizeAnimation: {
+    x: number;
+    startingY: number;
+    tick: number;
+  };
 };
 
 export type SwapAnimation = {
@@ -221,11 +226,17 @@ export class GameBoard {
       }
     }
     if (queuedPops.length > 0) {
+      const topMostLeftMostTile = [...queuedPops].sort((a, b) => a.y * boardWidth + a.x - (b.y * boardWidth + b.x))[0];
       const popAnimation: PopAnimation = {
         queuedPops: queuedPops.reverse(),
         popAnimationIndex: 0,
         matchPhase: 'blink',
         matchTimer: AnimationConstants.matchBlinkTicks,
+        popSizeAnimation: {
+          startingY: topMostLeftMostTile.drawY,
+          x: topMostLeftMostTile.drawX,
+          tick: 0,
+        },
       };
       this.popAnimations.push(popAnimation);
     }
@@ -565,6 +576,36 @@ export class GameBoard {
       tileSize * 2 + 8,
       tileSize + 8
     );
+
+    for (const popAnimation of this.popAnimations) {
+      // if (popAnimation.queuedPops.length > 3) {
+      if (popAnimation.popSizeAnimation.tick > 2) {
+        let offset = 0;
+        if (popAnimation.popSizeAnimation.tick < 7) {
+          offset = popAnimation.popSizeAnimation.tick - 2;
+        } else if (popAnimation.popSizeAnimation.tick < 7) {
+          offset = 5 + Math.ceil((popAnimation.popSizeAnimation.tick - 7) / 2);
+        } else if (popAnimation.popSizeAnimation.tick < 7 + 8) {
+          offset = 9 + Math.ceil((popAnimation.popSizeAnimation.tick - 7 - 8) / 3);
+        } else if (popAnimation.popSizeAnimation.tick < 7 + 8 + 8) {
+          offset = 13 + Math.ceil((popAnimation.popSizeAnimation.tick - 7 - 8 - 8) / 4);
+        } else if (popAnimation.popSizeAnimation.tick < 7 + 8 + 8 + 40) {
+          offset = 15;
+        } else {
+          continue;
+        }
+
+        this.drawBox(
+          context,
+          'pop',
+          popAnimation.queuedPops.length as keyof GameBoard['assets']['numbers'],
+          popAnimation.popSizeAnimation.x,
+          popAnimation.popSizeAnimation.startingY - offset
+        );
+      }
+      // }
+      popAnimation.popSizeAnimation.tick++;
+    }
 
     context.restore();
   }
