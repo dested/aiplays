@@ -1,8 +1,6 @@
 import {tileSize} from './store/game/gameInstance';
 import {unreachable} from './types/unreachable';
-import {GameBoard} from './gameBoard';
-
-export type TileColor = 'green' | 'purple' | 'red' | 'yellow' | 'teal' | 'blue';
+import {GameBoard, TileColor} from './gameBoard';
 
 export class GameTile {
   draw(context: CanvasRenderingContext2D) {

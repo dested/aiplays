@@ -1,7 +1,7 @@
-import {tileSize, boardHeight, AnimationConstants, boardWidth} from './store/game/gameInstance';
-import {GameTile, TileColor} from './gameTile';
+import {AnimationConstants, boardHeight, boardWidth, tileSize} from './store/game/gameInstance';
+import {GameTile} from './gameTile';
 import {unreachable} from './types/unreachable';
-import {randomElement, safeKeys} from './utils/utilts';
+import {randomElement} from './utils/utilts';
 import {TetrisAttackAssets} from './assetManager';
 
 export type PopAnimation = {
@@ -9,7 +9,8 @@ export type PopAnimation = {
   popAnimationIndex: number;
   matchPhase: 'blink' | 'solid' | 'pop' | 'postPop';
   matchTimer: number;
-  popSizeAnimation: {
+  popAnimation: {
+    comboCount: number;
     x: number;
     startingY: number;
     tick: number;
@@ -32,7 +33,8 @@ export type DroppingAnimation = {
   dropBouncePhase: 'not-started' | 'regular' | 'low' | 'high' | 'mid';
 };
 
-export const GameTiles: TileColor[] = ['green', 'purple', 'red', 'yellow', 'teal', 'blue'];
+export type TileColor = 'green' | 'purple' | 'red' | 'yellow' | 'teal' | 'blue';
+export const GameTiles: TileColor[] = ['green', 'purple', 'red' /*, 'yellow', 'teal', 'blue'*/];
 
 export class GameBoard {
   constructor() {
@@ -232,9 +234,10 @@ export class GameBoard {
         popAnimationIndex: 0,
         matchPhase: 'blink',
         matchTimer: AnimationConstants.matchBlinkTicks,
-        popSizeAnimation: {
+        popAnimation: {
           startingY: topMostLeftMostTile.drawY,
           x: topMostLeftMostTile.drawX,
+          comboCount: 4,
           tick: 0,
         },
       };
@@ -578,35 +581,51 @@ export class GameBoard {
     );
 
     for (const popAnimation of this.popAnimations) {
-      // if (popAnimation.queuedPops.length > 3) {
-      if (popAnimation.popSizeAnimation.tick > 2) {
-        let offset = 0;
-        if (popAnimation.popSizeAnimation.tick < 7) {
-          offset = popAnimation.popSizeAnimation.tick - 2;
-        } else if (popAnimation.popSizeAnimation.tick < 7) {
-          offset = 5 + Math.ceil((popAnimation.popSizeAnimation.tick - 7) / 2);
-        } else if (popAnimation.popSizeAnimation.tick < 7 + 8) {
-          offset = 9 + Math.ceil((popAnimation.popSizeAnimation.tick - 7 - 8) / 3);
-        } else if (popAnimation.popSizeAnimation.tick < 7 + 8 + 8) {
-          offset = 13 + Math.ceil((popAnimation.popSizeAnimation.tick - 7 - 8 - 8) / 4);
-        } else if (popAnimation.popSizeAnimation.tick < 7 + 8 + 8 + 40) {
-          offset = 15;
-        } else {
+      if (popAnimation.popAnimation.tick > 2) {
+        let offset = GameBoard.getBoxOffset(popAnimation.popAnimation.tick);
+        if (offset === -1) {
           continue;
         }
 
-        this.drawBox(
-          context,
-          'pop',
-          popAnimation.queuedPops.length as keyof GameBoard['assets']['numbers'],
-          popAnimation.popSizeAnimation.x,
-          popAnimation.popSizeAnimation.startingY - offset
-        );
+        if (popAnimation.queuedPops.length > 3) {
+          this.drawBox(
+            context,
+            'pop',
+            popAnimation.queuedPops.length as keyof GameBoard['assets']['numbers'],
+            popAnimation.popAnimation.x,
+            popAnimation.popAnimation.startingY - offset
+          );
+          offset += tileSize;
+        }
+        if (popAnimation.popAnimation.comboCount > 1) {
+          this.drawBox(
+            context,
+            'repeat',
+            popAnimation.popAnimation.comboCount as keyof GameBoard['assets']['numbers'],
+            popAnimation.popAnimation.x,
+            popAnimation.popAnimation.startingY - offset
+          );
+        }
       }
-      // }
-      popAnimation.popSizeAnimation.tick++;
+      popAnimation.popAnimation.tick++;
     }
 
     context.restore();
+  }
+
+  static getBoxOffset(tick: number) {
+    if (tick < 7) {
+      return tick - 2;
+    } else if (tick < 7) {
+      return 5 + Math.ceil((tick - 7) / 2);
+    } else if (tick < 7 + 8) {
+      return 9 + Math.ceil((tick - 7 - 8) / 3);
+    } else if (tick < 7 + 8 + 32) {
+      return 13 + Math.ceil((tick - 7 - 8 - 8) / 4);
+    } else if (tick < 7 + 8 + 32 + 30) {
+      return 20;
+    } else {
+      return -1;
+    }
   }
 }
