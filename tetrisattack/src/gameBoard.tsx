@@ -1,7 +1,7 @@
 import {tileSize, boardHeight, AnimationConstants, boardWidth} from './store/game/gameInstance';
 import {GameTile, TileColor} from './gameTile';
 import {unreachable} from './types/unreachable';
-import {randomElement} from './utils/utilts';
+import {randomElement, safeKeys} from './utils/utilts';
 import {TetrisAttackAssets} from './assetManager';
 
 export type PopAnimation = {
@@ -10,9 +10,6 @@ export type PopAnimation = {
   matchPhase: 'blink' | 'solid' | 'pop' | 'postPop';
   matchTimer: number;
 };
-
-export type ComboSize = 4 | 5 | 6 | 9 | 10 | 12 | 14 | 18;
-export type ComboRepeat = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 export type SwapAnimation = {
   y: number;
@@ -387,7 +384,7 @@ export class GameBoard {
     }
   }
 
-  assets?: {
+  assets!: {
     block: {
       regular: {[color in TileColor]: HTMLCanvasElement};
       bounceLow: {[color in TileColor]: HTMLCanvasElement};
@@ -398,13 +395,37 @@ export class GameBoard {
       transparent: {[color in TileColor]: HTMLCanvasElement};
       black: {[color in TileColor]: HTMLCanvasElement};
     };
-    combo: {
-      size: {[size in ComboSize]: HTMLCanvasElement};
-      repeat: {[color in ComboRepeat]: HTMLCanvasElement};
+    boxes: {
+      pop: HTMLCanvasElement;
+      repeat: HTMLCanvasElement;
+    };
+    numbers: {
+      2: HTMLCanvasElement;
+      3: HTMLCanvasElement;
+      4: HTMLCanvasElement;
+      5: HTMLCanvasElement;
+      6: HTMLCanvasElement;
+      7: HTMLCanvasElement;
+      8: HTMLCanvasElement;
+      9: HTMLCanvasElement;
+      10: HTMLCanvasElement;
+      11: HTMLCanvasElement;
+      12: HTMLCanvasElement;
+      13: HTMLCanvasElement;
+      14: HTMLCanvasElement;
+      15: HTMLCanvasElement;
+      16: HTMLCanvasElement;
+      17: HTMLCanvasElement;
+      18: HTMLCanvasElement;
+      19: HTMLCanvasElement;
     };
   };
 
-  loadAssetSheets(blockAssetSheet: HTMLCanvasElement[][], comboAssetSheet: HTMLCanvasElement[][]) {
+  loadAssetSheets(
+    blockAssetSheet: HTMLCanvasElement[][],
+    comboBoxesAssetSheet: HTMLCanvasElement[][],
+    numbersAssetSheet: HTMLCanvasElement[][]
+  ) {
     function convertToColor(assets: HTMLCanvasElement[]): {[color in TileColor]: HTMLCanvasElement} {
       return {
         green: assets[0],
@@ -427,27 +448,29 @@ export class GameBoard {
         transparent: convertToColor(blockAssetSheet[6]),
         black: convertToColor(blockAssetSheet[7]),
       },
-      combo: {
-        size: {
-          4: comboAssetSheet[0][0],
-          5: comboAssetSheet[0][1],
-          6: comboAssetSheet[0][2],
-          9: comboAssetSheet[0][3],
-          10: comboAssetSheet[0][4],
-          12: comboAssetSheet[0][5],
-          14: comboAssetSheet[0][6],
-          18: comboAssetSheet[0][7],
-        },
-        repeat: {
-          2: comboAssetSheet[1][0],
-          3: comboAssetSheet[1][1],
-          4: comboAssetSheet[1][2],
-          5: comboAssetSheet[1][3],
-          6: comboAssetSheet[1][4],
-          7: comboAssetSheet[1][5],
-          8: comboAssetSheet[1][6],
-          9: comboAssetSheet[1][7],
-        },
+      boxes: {
+        pop: comboBoxesAssetSheet[0][0],
+        repeat: comboBoxesAssetSheet[0][1],
+      },
+      numbers: {
+        2: numbersAssetSheet[0][0],
+        3: numbersAssetSheet[0][1],
+        4: numbersAssetSheet[0][2],
+        5: numbersAssetSheet[0][3],
+        6: numbersAssetSheet[0][4],
+        7: numbersAssetSheet[0][5],
+        8: numbersAssetSheet[0][6],
+        9: numbersAssetSheet[0][7],
+        10: numbersAssetSheet[0][8],
+        11: numbersAssetSheet[0][9],
+        12: numbersAssetSheet[0][10],
+        13: numbersAssetSheet[0][11],
+        14: numbersAssetSheet[0][13],
+        15: numbersAssetSheet[0][14],
+        16: numbersAssetSheet[0][15],
+        17: numbersAssetSheet[0][16],
+        18: numbersAssetSheet[0][17],
+        19: numbersAssetSheet[0][18],
       },
     };
   }
@@ -495,6 +518,26 @@ export class GameBoard {
       throw new Error('bad pop');
     } else {
       this.tiles.splice(this.tiles.indexOf(tile), 1);
+    }
+  }
+
+  drawBox(
+    context: CanvasRenderingContext2D,
+    type: 'pop' | 'repeat',
+    count: keyof GameBoard['assets']['numbers'],
+    x: number,
+    y: number
+  ) {
+    context.drawImage(this.assets.boxes[type], x, y, tileSize, tileSize - 2);
+    switch (type) {
+      case 'repeat':
+        context.drawImage(this.assets.numbers[count], x + 6 * 2, y + 3 * 2, 10 * 2, 9 * 2);
+        break;
+      case 'pop':
+        context.drawImage(this.assets.numbers[count], x + 3 * 2, y + 3 * 2, 10 * 2, 9 * 2);
+        break;
+      default:
+        throw unreachable(type);
     }
   }
 

@@ -6,7 +6,8 @@ import {gameStore} from './store/game/store';
 import {MainStoreName, MainStoreProps} from './store/main/store';
 import {makeSheet, TetrisAttackAssets} from './assetManager';
 import blocks from './assets/game/blocks.png';
-import combo from './assets/game/combo.png';
+import comboBoxes from './assets/game/comboBoxes.png';
+import numbers from './assets/game/numbers.png';
 
 interface Props extends MainStoreProps {}
 interface State {
@@ -17,7 +18,8 @@ interface State {
 @observer
 export class GameCanvas extends React.Component<Props, State> {
   private blockAssetSheet?: HTMLCanvasElement[][];
-  private comboAssetSheet?: HTMLCanvasElement[][];
+  private numbersAssetSheet?: HTMLCanvasElement[][];
+  private comboBoxesAssetSheet?: HTMLCanvasElement[][];
   constructor(props: Props) {
     super(props);
 
@@ -28,9 +30,15 @@ export class GameCanvas extends React.Component<Props, State> {
   private canvasContext!: CanvasRenderingContext2D;
 
   async componentDidMount() {
-    await TetrisAttackAssets.load();
-    this.blockAssetSheet = await makeSheet(blocks, {width: 16, height: 16}, {width: 3, height: 3});
-    this.comboAssetSheet = await makeSheet(combo, {width: 16, height: 15}, {width: 6, height: 5});
+    const sheets = await Promise.all([
+      makeSheet(blocks, {width: 16, height: 16}, {width: 3, height: 3}),
+      makeSheet(comboBoxes, {width: 16, height: 15}, {width: 0, height: 0}),
+      makeSheet(numbers, {width: 10, height: 9}, {width: 0, height: 0}),
+      TetrisAttackAssets.load(),
+    ]);
+    this.blockAssetSheet = sheets[0];
+    this.comboBoxesAssetSheet = sheets[1];
+    this.numbersAssetSheet = sheets[2];
     this.canvasContext = this.canvas.current!.getContext('2d')!;
     this.canvasContext.imageSmoothingEnabled = false;
 
@@ -167,12 +175,16 @@ export class GameCanvas extends React.Component<Props, State> {
   firstRender = false;
   canvasRender() {
     this.canvasContext.clearRect(0, 0, this.canvas.current!.width, this.canvas.current!.height);
-    if (!GameInstance.mainInstance || !this.blockAssetSheet || !this.comboAssetSheet) {
+    if (!GameInstance.mainInstance || !this.blockAssetSheet || !this.comboBoxesAssetSheet || !this.numbersAssetSheet) {
       window.requestAnimationFrame(() => this.canvasRender());
       return;
     }
     if (!this.firstRender) {
-      GameInstance.mainInstance.board.loadAssetSheets(this.blockAssetSheet, this.comboAssetSheet);
+      GameInstance.mainInstance.board.loadAssetSheets(
+        this.blockAssetSheet,
+        this.comboBoxesAssetSheet,
+        this.numbersAssetSheet
+      );
       this.firstRender = true;
     }
     const board = GameInstance.mainInstance.board;
