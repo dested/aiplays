@@ -18,6 +18,8 @@ export const AnimationConstants = {
   matchPopTicksEach: 3,
 */
   matchPostPopTicks: 3,
+
+  cursorFlex: 32,
 };
 
 export class GameInstance implements IGameInstance {

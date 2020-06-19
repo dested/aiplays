@@ -33,7 +33,7 @@ export class Component extends React.Component<Props, State> {
         <div
           style={{
             height: '100vh',
-            width: '30vw',
+            width: window.innerHeight > window.innerWidth ? '100vw' : '30vw',
             flexDirection: 'column',
             display: 'flex',
           }}

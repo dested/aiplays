@@ -142,13 +142,23 @@ export class GameBoard {
     }
 
     const selectionBox = TetrisAttackAssets.assets['game.selectionBox'].image;
-    context.drawImage(
-      selectionBox,
-      this.cursor.x * tileSize - 4,
-      this.cursor.y * tileSize - 4,
-      tileSize * 2 + 8,
-      tileSize + 8
-    );
+    if ((this.tickCount % AnimationConstants.cursorFlex) * 2 < AnimationConstants.cursorFlex) {
+      context.drawImage(
+        selectionBox,
+        this.cursor.x * tileSize - 4,
+        this.cursor.y * tileSize - 4,
+        tileSize * 2 + 8,
+        tileSize + 8
+      );
+    } else {
+      context.drawImage(
+        selectionBox,
+        this.cursor.x * tileSize - 8,
+        this.cursor.y * tileSize - 8,
+        tileSize * 2 + 16,
+        tileSize + 16
+      );
+    }
 
     for (const popAnimation of this.popAnimations) {
       if (popAnimation.popAnimation.tick > 2) {
