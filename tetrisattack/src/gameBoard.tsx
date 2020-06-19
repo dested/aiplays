@@ -2,6 +2,7 @@ import {tileSize, boardHeight, AnimationConstants, boardWidth} from './store/gam
 import {GameTile, TileColor} from './gameTile';
 import {unreachable} from './types/unreachable';
 import {randomElement} from './utils/utilts';
+import {TetrisAttackAssets} from './assetManager';
 
 export type PopAnimation = {
   queuedPops: GameTile[];
@@ -9,6 +10,9 @@ export type PopAnimation = {
   matchPhase: 'blink' | 'solid' | 'pop' | 'postPop';
   matchTimer: number;
 };
+
+export type ComboSize = 4 | 5 | 6 | 9 | 10 | 12 | 14 | 18;
+export type ComboRepeat = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 export type SwapAnimation = {
   y: number;
@@ -384,17 +388,23 @@ export class GameBoard {
   }
 
   assets?: {
-    regular: {[color in TileColor]: HTMLCanvasElement};
-    bounceLow: {[color in TileColor]: HTMLCanvasElement};
-    bounceHigh: {[color in TileColor]: HTMLCanvasElement};
-    bounceMid: {[color in TileColor]: HTMLCanvasElement};
-    dark: {[color in TileColor]: HTMLCanvasElement};
-    popped: {[color in TileColor]: HTMLCanvasElement};
-    transparent: {[color in TileColor]: HTMLCanvasElement};
-    black: {[color in TileColor]: HTMLCanvasElement};
+    block: {
+      regular: {[color in TileColor]: HTMLCanvasElement};
+      bounceLow: {[color in TileColor]: HTMLCanvasElement};
+      bounceHigh: {[color in TileColor]: HTMLCanvasElement};
+      bounceMid: {[color in TileColor]: HTMLCanvasElement};
+      dark: {[color in TileColor]: HTMLCanvasElement};
+      popped: {[color in TileColor]: HTMLCanvasElement};
+      transparent: {[color in TileColor]: HTMLCanvasElement};
+      black: {[color in TileColor]: HTMLCanvasElement};
+    };
+    combo: {
+      size: {[size in ComboSize]: HTMLCanvasElement};
+      repeat: {[color in ComboRepeat]: HTMLCanvasElement};
+    };
   };
 
-  loadAssetSheet(assetSheet: HTMLCanvasElement[][]) {
+  loadAssetSheets(blockAssetSheet: HTMLCanvasElement[][], comboAssetSheet: HTMLCanvasElement[][]) {
     function convertToColor(assets: HTMLCanvasElement[]): {[color in TileColor]: HTMLCanvasElement} {
       return {
         green: assets[0],
@@ -407,14 +417,38 @@ export class GameBoard {
     }
 
     this.assets = {
-      regular: convertToColor(assetSheet[0]),
-      bounceHigh: convertToColor(assetSheet[1]),
-      bounceMid: convertToColor(assetSheet[2]),
-      bounceLow: convertToColor(assetSheet[3]),
-      dark: convertToColor(assetSheet[4]),
-      popped: convertToColor(assetSheet[5]),
-      transparent: convertToColor(assetSheet[6]),
-      black: convertToColor(assetSheet[7]),
+      block: {
+        regular: convertToColor(blockAssetSheet[0]),
+        bounceHigh: convertToColor(blockAssetSheet[1]),
+        bounceMid: convertToColor(blockAssetSheet[2]),
+        bounceLow: convertToColor(blockAssetSheet[3]),
+        dark: convertToColor(blockAssetSheet[4]),
+        popped: convertToColor(blockAssetSheet[5]),
+        transparent: convertToColor(blockAssetSheet[6]),
+        black: convertToColor(blockAssetSheet[7]),
+      },
+      combo: {
+        size: {
+          4: comboAssetSheet[0][0],
+          5: comboAssetSheet[0][1],
+          6: comboAssetSheet[0][2],
+          9: comboAssetSheet[0][3],
+          10: comboAssetSheet[0][4],
+          12: comboAssetSheet[0][5],
+          14: comboAssetSheet[0][6],
+          18: comboAssetSheet[0][7],
+        },
+        repeat: {
+          2: comboAssetSheet[1][0],
+          3: comboAssetSheet[1][1],
+          4: comboAssetSheet[1][2],
+          5: comboAssetSheet[1][3],
+          6: comboAssetSheet[1][4],
+          7: comboAssetSheet[1][5],
+          8: comboAssetSheet[1][6],
+          9: comboAssetSheet[1][7],
+        },
+      },
     };
   }
 
@@ -462,5 +496,33 @@ export class GameBoard {
     } else {
       this.tiles.splice(this.tiles.indexOf(tile), 1);
     }
+  }
+
+  draw(context: CanvasRenderingContext2D) {
+    context.save();
+
+    context.translate(0, boardHeight * tileSize - this.boardOffsetPosition);
+    context.lineWidth = 1;
+    for (let y = this.topMostRow; y < this.lowestVisibleRow + 1; y++) {
+      for (let x = 0; x < boardWidth; x++) {
+        const tile = this.getTile(x, y);
+        if (tile) tile.draw(context);
+        if (y === this.lowestVisibleRow) {
+          context.fillStyle = '#00000099';
+          context.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+        }
+      }
+    }
+
+    const selectionBox = TetrisAttackAssets.assets['game.selectionBox'].image;
+    context.drawImage(
+      selectionBox,
+      this.cursor.x * tileSize - 4,
+      this.cursor.y * tileSize - 4,
+      tileSize * 2 + 8,
+      tileSize + 8
+    );
+
+    context.restore();
   }
 }

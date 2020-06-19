@@ -8,29 +8,53 @@ export class GameTile {
   draw(context: CanvasRenderingContext2D) {
     switch (this.drawType) {
       case 'matched':
-        context.drawImage(this.gameBoard.assets!.regular[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        context.drawImage(this.gameBoard.assets!.block.regular[this.color], this.drawX, this.drawY, tileSize, tileSize);
         break;
       case 'matched-blink':
         context.fillStyle = '#D6D7D6';
         context.fillRect(this.drawX, this.drawY, tileSize, tileSize);
-        context.drawImage(this.gameBoard.assets!.transparent[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        context.drawImage(
+          this.gameBoard.assets!.block.transparent[this.color],
+          this.drawX,
+          this.drawY,
+          tileSize,
+          tileSize
+        );
         break;
       case 'popping':
-        context.drawImage(this.gameBoard.assets!.popped[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        context.drawImage(this.gameBoard.assets!.block.popped[this.color], this.drawX, this.drawY, tileSize, tileSize);
         break;
       case 'popped':
         break;
       case 'bounce-low':
-        context.drawImage(this.gameBoard.assets!.bounceLow[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        context.drawImage(
+          this.gameBoard.assets!.block.bounceLow[this.color],
+          this.drawX,
+          this.drawY,
+          tileSize,
+          tileSize
+        );
         break;
       case 'bounce-high':
-        context.drawImage(this.gameBoard.assets!.bounceHigh[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        context.drawImage(
+          this.gameBoard.assets!.block.bounceHigh[this.color],
+          this.drawX,
+          this.drawY,
+          tileSize,
+          tileSize
+        );
         break;
       case 'bounce-mid':
-        context.drawImage(this.gameBoard.assets!.bounceMid[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        context.drawImage(
+          this.gameBoard.assets!.block.bounceMid[this.color],
+          this.drawX,
+          this.drawY,
+          tileSize,
+          tileSize
+        );
         break;
       case 'regular':
-        context.drawImage(this.gameBoard.assets!.regular[this.color], this.drawX, this.drawY, tileSize, tileSize);
+        context.drawImage(this.gameBoard.assets!.block.regular[this.color], this.drawX, this.drawY, tileSize, tileSize);
         break;
 
       default:
