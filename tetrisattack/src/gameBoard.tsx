@@ -41,7 +41,7 @@ export type DroppingAnimation = {
 };
 
 export type TileColor = 'green' | 'purple' | 'red' | 'yellow' | 'teal' | 'blue';
-export const GameTiles: TileColor[] = ['green', 'purple', 'red', 'yellow', 'teal', 'blue'];
+export const GameTiles: TileColor[] = ['green', 'purple', 'red' /*, 'yellow', 'teal', 'blue'*/];
 
 export class GameBoard {
   assets!: {
@@ -102,6 +102,7 @@ export class GameBoard {
         .filter((a) => a);
       for (let y = 0; y < rows.length; y++) {
         for (let x = 0; x < rows[y].length; x++) {
+          if (rows[y].charAt(x) === ' ') continue;
           const color = this.charToColor(rows[y].charAt(x));
           this.tiles.push(new GameTile(this, color, true, x, y));
         }
@@ -450,12 +451,7 @@ export class GameBoard {
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
       for (let x = 0; x < boardWidth; x++) {
         const tile = this.getTile(x, y);
-        if (
-          !tile ||
-          !tile.swappable ||
-          this.droppingColumns.find((a) => a.x === x && a.dropBouncePhase === 'not-started')
-        )
-          continue;
+        if (!tile || !tile.swappable || this.tileIsFloating(tile)) continue;
         let total: number;
         if (tile.x < boardWidth - 1) {
           total = this.testTile(queuedPops, tile.color, 'right', tile.x + 1, tile.y, 1);
@@ -658,8 +654,7 @@ export class GameBoard {
     count: number
   ): number {
     const tile = this.getTile(x, y);
-    if (!tile || !tile.swappable || this.droppingColumns.find((a) => a.x === x && a.dropBouncePhase === 'not-started'))
-      return count;
+    if (!tile || !tile.swappable || this.tileIsFloating(tile)) return count;
 
     switch (direction) {
       case 'left':
@@ -721,5 +716,12 @@ export class GameBoard {
     } else {
       return -1;
     }
+  }
+
+  private tileIsFloating(tile: GameTile) {
+    return (
+      this.droppingColumns.find((a) => a.x === tile.x && a.dropBouncePhase === 'not-started') ||
+      !this.getTile(tile.x, tile.y + 1)
+    );
   }
 }

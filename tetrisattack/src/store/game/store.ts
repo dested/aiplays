@@ -43,9 +43,16 @@ rgtgrg
 rgtrgr
 ytytyt
 `,
+      slide: `
+tt tgr
+rg grg
+rg grg
+grtrgr
+ytytyt
+`,
     };
     // seed('a');
-    gameLogic.board = new GameBoard(maps.sevenCombo);
+    gameLogic.board = new GameBoard(/*maps.slide*/);
     gameLogic.board.tick();
     setInterval(() => {
       gameLogic.board.tick();
