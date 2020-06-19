@@ -42,7 +42,7 @@ const styles = {
   leftJoyStick: {
     position: 'absolute',
     height: '50%',
-    width: '30%',
+    width: '60%',
     bottom: 0,
     left: 0,
     background: 'transparent',
@@ -50,7 +50,7 @@ const styles = {
   rightJoystick: {
     position: 'absolute',
     height: '50%',
-    width: '30%',
+    width: '40%',
     bottom: 0,
     right: 0,
     background: 'transparent',

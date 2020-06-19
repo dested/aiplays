@@ -41,7 +41,7 @@ export type DroppingAnimation = {
 };
 
 export type TileColor = 'green' | 'purple' | 'red' | 'yellow' | 'teal' | 'blue';
-export const GameTiles: TileColor[] = ['green', 'purple', 'red' /*, 'yellow', 'teal', 'blue'*/];
+export const GameTiles: TileColor[] = ['green', 'purple', 'red', 'yellow', 'teal', 'blue'];
 
 export class GameBoard {
   assets!: {

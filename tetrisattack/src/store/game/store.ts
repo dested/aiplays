@@ -45,7 +45,7 @@ ytytyt
 `,
     };
     // seed('a');
-    gameLogic.board = new GameBoard(maps.fiveCombo);
+    gameLogic.board = new GameBoard(/*maps.fiveCombo*/);
     gameLogic.board.tick();
     setInterval(() => {
       gameLogic.board.tick();
