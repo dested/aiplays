@@ -1,11 +1,15 @@
+import seedrandom from 'seedrandom';
+
+let rng = seedrandom();
+
+export function seed(initialSeed: string) {
+  rng = seedrandom(initialSeed);
+}
 export function randomElement<T>(array: T[]) {
-  const n = Math.floor(Math.random() * array.length);
+  const n = Math.floor(rng.quick() * array.length);
   return array[n];
 }
 
-export function random(chance: number) {
-  return Math.random() * 100 < chance;
-}
 export function safeKeys<T>(obj: T): (keyof T)[] {
   return Object.keys(obj) as (keyof T)[];
 }

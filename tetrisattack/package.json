@@ -28,7 +28,9 @@
     "tslint-eslint-rules": "^5.4.0",
     "tslint-plugin-prettier": "^2.3.0",
     "tslint-react": "^5.0.0",
-    "typescript": "^3.9.5"
+    "typescript": "^3.9.5",
+    "@types/seedrandom": "^2.4.28",
+    "seedrandom": "^3.0.5"
   },
   "scripts": {
     "start": "react-scripts start",

@@ -82,8 +82,8 @@ export class GameBoard {
   };
 
   boardOffsetPosition = tileSize * (boardHeight / 2);
-  comboTrackers: ComboTracker[] = [];
   comboCount: number = 1;
+  comboTrackers: ComboTracker[] = [];
   cursor: {x: number; y: number} = {x: 0, y: 0};
   droppingColumns: DroppingAnimation[] = [];
   popAnimations: PopAnimation[] = [];
@@ -450,7 +450,12 @@ export class GameBoard {
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
       for (let x = 0; x < boardWidth; x++) {
         const tile = this.getTile(x, y);
-        if (!tile || !tile.swappable || !this.getTile(x, y + 1)) continue;
+        if (
+          !tile ||
+          !tile.swappable ||
+          this.droppingColumns.find((a) => a.x === x && a.dropBouncePhase === 'not-started')
+        )
+          continue;
         let total: number;
         if (tile.x < boardWidth - 1) {
           total = this.testTile(queuedPops, tile.color, 'right', tile.x + 1, tile.y, 1);
@@ -469,7 +474,9 @@ export class GameBoard {
 
     if (queuedPops.length > 0) {
       const topMostLeftMostTile = [...queuedPops].sort((a, b) => a.y * boardWidth + a.x - (b.y * boardWidth + b.x))[0];
+      let triggeredCombo = false;
       if (queuedPops.some((a) => a.comboViable)) {
+        triggeredCombo = true;
         this.comboCount++;
       }
       const popAnimation: PopAnimation = {
@@ -480,7 +487,7 @@ export class GameBoard {
         popAnimation: {
           startingY: topMostLeftMostTile.drawY,
           x: topMostLeftMostTile.drawX,
-          comboCount: this.comboCount,
+          comboCount: triggeredCombo ? this.comboCount : 1,
           tick: 0,
         },
       };
@@ -631,7 +638,7 @@ export class GameBoard {
 
   private popTile(tile: GameTile) {
     if (this.tiles.indexOf(tile) === -1) {
-      throw new Error('bad pop');
+      // todo throw new Error('bad pop');
     } else {
       this.tiles.splice(this.tiles.indexOf(tile), 1);
     }
@@ -646,7 +653,12 @@ export class GameBoard {
     count: number
   ): number {
     const gameTile = this.getTile(x, y);
-    if (!gameTile || !gameTile.swappable || !this.getTile(x, y + 1)) return count;
+    if (
+      !gameTile ||
+      !gameTile.swappable ||
+      this.droppingColumns.find((a) => a.x === x && a.dropBouncePhase === 'not-started')
+    )
+      return count;
 
     switch (direction) {
       case 'left':

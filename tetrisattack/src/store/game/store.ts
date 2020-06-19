@@ -1,5 +1,6 @@
 import {GameInstance} from './gameInstance';
 import {GameBoard} from '../../gameBoard';
+import {seed} from '../../utils/utilts';
 
 export class GameStore {
   aiScript!: {tick: () => void};
@@ -27,15 +28,24 @@ export class GameStore {
     const result = (window as any).eval(sc);
 
     const gameLogic = new GameInstance();
-    gameLogic.board = new GameBoard(
-      `
+    const maps = {
+      fiveCombo: `
 bgtgbg
 rrbbgg
 bbbrbr
 rrgybt
 rbbryt
-yrggbb`
-    );
+yrggbb`,
+      weirdDrop: `
+ttbrgr
+rgrgrg
+rgtgrg
+rgtrgr
+ytytyt
+`,
+    };
+    // seed('a');
+    gameLogic.board = new GameBoard(maps.fiveCombo);
     gameLogic.board.tick();
     setInterval(() => {
       gameLogic.board.tick();

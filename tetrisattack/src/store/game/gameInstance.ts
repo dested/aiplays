@@ -12,6 +12,11 @@ export const AnimationConstants = {
   matchBlinkTicks: 44,
   matchSolidTicks: 20,
   matchPopTicksEach: 9,
+  /*
+  matchBlinkTicks: 4,
+  matchSolidTicks: 4,
+  matchPopTicksEach: 3,
+*/
   matchPostPopTicks: 3,
 };
 
