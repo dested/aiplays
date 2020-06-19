@@ -124,7 +124,8 @@ export class GameBoard {
       }
     }
 
-    for (const popAnimation of this.popAnimations) {
+    for (let i = this.popAnimations.length - 1; i >= 0; i--) {
+      const popAnimation = this.popAnimations[i];
       switch (popAnimation.matchPhase) {
         case 'blink':
           if (popAnimation.matchTimer > 0) {
@@ -160,7 +161,7 @@ export class GameBoard {
           if (popAnimation.matchTimer > 0) {
             popAnimation.matchTimer--;
           } else {
-            this.popAnimations.remove(popAnimation);
+            this.popAnimations.splice(i,1);
             continue;
           }
           break;
@@ -236,7 +237,7 @@ export class GameBoard {
             for (let j = droppingPiece.bouncingTiles.length - 1; j >= 0; j--) {
               const gameTile = droppingPiece.bouncingTiles[j];
               if (this.popAnimations.find((a) => a.queuedPops.some((t) => t === gameTile))) {
-                droppingPiece.bouncingTiles.remove(gameTile);
+                droppingPiece.bouncingTiles.splice(j,1);
               }
             }
           }
@@ -268,7 +269,7 @@ export class GameBoard {
               for (const gameTile of droppingPiece.bouncingTiles) {
                 gameTile.drawType = 'regular';
               }
-              this.droppingColumns.remove(droppingPiece);
+              this.droppingColumns.splice(i,1);
               break;
           }
         }
@@ -453,6 +454,6 @@ export class GameBoard {
   }
 
   private popTile(tile: GameTile) {
-    this.tiles.remove(tile);
+    this.tiles.splice(this.tiles.indexOf(tile),1);
   }
 }

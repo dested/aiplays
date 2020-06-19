@@ -1,10 +1,23 @@
 {
   "compilerOptions": {
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react",
+
+
+
     "noEmitOnError": false,
     "experimentalDecorators": true,
     "allowUnreachableCode": true,
     "strict": true,
-    "jsx": "react",
     "target": "es2015",
     "lib": [
       "esnext",
@@ -12,12 +25,10 @@
       "es2017",
       "esnext.asynciterable"
     ],
-    "module": "commonjs",
     "inlineSourceMap": true,
-    "pretty": true,
-    "noEmit": true,
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true
-  }
+    "pretty": true
+  },
+  "include": [
+    "src"
+  ]
 }

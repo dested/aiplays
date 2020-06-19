@@ -15,7 +15,7 @@ export interface AssetItem<TKeys> {
   frameIndex?: number;
   realName: TKeys;
   size: {height: number; width: number};
-  url: typeof import('*.png');
+  url: string;
 }
 
 class AssetManager<TKeys extends string> {
@@ -24,7 +24,7 @@ class AssetManager<TKeys extends string> {
 
   addAsset(
     name: TKeys,
-    url: typeof import('*.png'),
+    url: string,
     size: {height: number; width: number},
     base: {x: number; y: number} = {x: 0, y: 0}
   ) {
@@ -92,7 +92,7 @@ class AssetManager<TKeys extends string> {
 export const TetrisAttackAssets = new AssetManager<AssetKeys>();
 
 export function makeSheet(
-  url: typeof import('*.png'),
+  url: string,
   dimensions: {height: number; width: number},
   gap: {height: number; width: number}
 ): Promise<HTMLCanvasElement[][]> {
