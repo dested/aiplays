@@ -110,11 +110,10 @@ export class GameBoard {
         if (start) {
           const rows = start
             .split('\n')
-            .map((a) => a.trim())
+            .map((a) => a.trimEnd())
             .filter((a) => a);
 
           const topPad = boardHeight - rows.length;
-
           for (let y = 0; y < rows.length; y++) {
             for (let x = 0; x < rows[y].length; x++) {
               if (rows[y].charAt(x) === ' ') continue;
