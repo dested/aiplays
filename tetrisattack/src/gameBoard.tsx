@@ -1,7 +1,7 @@
 import {AnimationConstants, boardHeight, boardWidth, tileSize} from './store/game/gameInstance';
 import {GameTile} from './gameTile';
 import {unreachable} from './types/unreachable';
-import {groupBy, randomElement} from './utils/utilts';
+import {groupBy, randomElement, unique} from './utils/utilts';
 import {TetrisAttackAssets} from './assetManager';
 
 export type PopAnimation = {
@@ -41,7 +41,7 @@ export type DroppingAnimation = {
 };
 
 export type TileColor = 'green' | 'purple' | 'red' | 'yellow' | 'teal' | 'blue';
-export const GameTiles: TileColor[] = ['green', 'purple', 'red' /*, 'yellow', 'teal', 'blue'*/];
+export const GameTiles: TileColor[] = ['green', 'purple', 'red', 'yellow' /*, 'teal', 'blue'*/];
 
 export class GameBoard {
   assets!: {
@@ -334,7 +334,7 @@ export class GameBoard {
       }
 
       const maxY = Math.max(...this.tiles.map((a) => a.y)) + 1;
-      console.log(maxY, this.topMostRow, maxY - this.topMostRow, maxY - this.topMostRow < 15);
+      // console.log(maxY, this.topMostRow, maxY - this.topMostRow, maxY - this.topMostRow < 15);
       if (maxY - this.topMostRow < 15) {
         for (let y = maxY; y < maxY + this.topMostRow; y++) {
           this.fillRandom(y);
@@ -447,7 +447,7 @@ export class GameBoard {
       }
     }
 
-    const queuedPops: GameTile[] = [];
+    let queuedPops: GameTile[] = [];
     for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
       for (let x = 0; x < boardWidth; x++) {
         const tile = this.getTile(x, y);
@@ -456,16 +456,18 @@ export class GameBoard {
         if (tile.x < boardWidth - 1) {
           total = this.testTile(queuedPops, tile.color, 'right', tile.x + 1, tile.y, 1);
           if (total >= 3) {
-            tile.setSwappable(false);
             queuedPops.push(tile);
           }
         }
         total = this.testTile(queuedPops, tile.color, 'down', tile.x, tile.y + 1, 1);
         if (total >= 3) {
-          tile.setSwappable(false);
           queuedPops.push(tile);
         }
       }
+    }
+    queuedPops = unique(queuedPops);
+    for (const queuedPop of queuedPops) {
+      queuedPop.setSwappable(false);
     }
 
     if (queuedPops.length > 0) {
@@ -662,7 +664,6 @@ export class GameBoard {
           const total = this.testTile(queuedPops, color, 'left', x - 1, y, count + 1);
           if (total >= 3) {
             queuedPops.push(tile);
-            tile.setSwappable(false);
           }
           return total;
         }
@@ -672,7 +673,6 @@ export class GameBoard {
           const total = this.testTile(queuedPops, color, 'right', x + 1, y, count + 1);
           if (total >= 3) {
             queuedPops.push(tile);
-            tile.setSwappable(false);
           }
           return total;
         }
@@ -682,7 +682,6 @@ export class GameBoard {
           const total = this.testTile(queuedPops, color, 'up', x, y - 1, count + 1);
           if (total >= 3) {
             queuedPops.push(tile);
-            tile.setSwappable(false);
           }
           return total;
         }
@@ -692,7 +691,6 @@ export class GameBoard {
           const total = this.testTile(queuedPops, color, 'down', x, y + 1, count + 1);
           if (total >= 3) {
             queuedPops.push(tile);
-            tile.setSwappable(false);
           }
           return total;
         }
@@ -700,6 +698,13 @@ export class GameBoard {
       default:
         throw unreachable(direction);
     }
+  }
+
+  private tileIsFloating(tile: GameTile) {
+    return (
+      this.droppingColumns.find((a) => a.x === tile.x && a.dropBouncePhase === 'not-started') ||
+      !this.getTile(tile.x, tile.y + 1)
+    );
   }
 
   static getBoxOffset(tick: number) {
@@ -716,12 +721,5 @@ export class GameBoard {
     } else {
       return -1;
     }
-  }
-
-  private tileIsFloating(tile: GameTile) {
-    return (
-      this.droppingColumns.find((a) => a.x === tile.x && a.dropBouncePhase === 'not-started') ||
-      !this.getTile(tile.x, tile.y + 1)
-    );
   }
 }

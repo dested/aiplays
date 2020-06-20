@@ -28,3 +28,10 @@ export function groupBy<T, TKey>(items: T[], predicate: (pred: T) => TKey): {ite
 export function isMobile() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
 }
+
+export function unique<T>(arr: T[]): T[] {
+  function onlyUnique(value: T, index: number, self: T[]) {
+    return self.indexOf(value) === index;
+  }
+  return arr.filter(onlyUnique);
+}
