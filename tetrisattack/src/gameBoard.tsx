@@ -4,6 +4,7 @@ import {unreachable} from './types/unreachable';
 import {groupBy, randomElement, unique} from './utils/utilts';
 import {TetrisAttackAssets} from './assetManager';
 
+export type GameMode = 'endless' | 'puzzle';
 export type PopAnimation = {
   matchPhase: 'blink' | 'solid' | 'pop';
   matchTimer: number;
@@ -81,7 +82,7 @@ export class GameBoard {
     };
   };
 
-  boardOffsetPosition = tileSize * (boardHeight / 2);
+  boardOffsetPosition: number;
   comboCount: number = 1;
   comboTrackers: ComboTracker[] = [];
   cursor: {x: number; y: number} = {x: 0, y: 0};
@@ -93,24 +94,38 @@ export class GameBoard {
   tiles: GameTile[] = [];
   topMostRow = 0;
 
-  constructor(start?: string) {
-    let lowestY = 0;
-    if (start) {
-      const rows = start
-        .split('\n')
-        .map((a) => a.trim())
-        .filter((a) => a);
-      for (let y = 0; y < rows.length; y++) {
-        for (let x = 0; x < rows[y].length; x++) {
-          if (rows[y].charAt(x) === ' ') continue;
-          const color = this.charToColor(rows[y].charAt(x));
-          this.tiles.push(new GameTile(this, color, true, x, y));
+  constructor(public gameMode: GameMode, start?: string) {
+    switch (gameMode) {
+      case 'endless':
+        this.boardOffsetPosition = tileSize * (boardHeight / 2);
+        if (this.gameMode === 'endless') {
+          for (let y = 0; y < 15; y++) {
+            this.fillRandom(y);
+          }
         }
-        lowestY = y + 1;
-      }
-    }
-    for (let y = lowestY; y < lowestY + 15; y++) {
-      this.fillRandom(y);
+
+        break;
+      case 'puzzle':
+        let lowestY = 0;
+        if (start) {
+          const rows = start
+            .split('\n')
+            .map((a) => a.trim())
+            .filter((a) => a);
+
+          const topPad = boardHeight - rows.length;
+
+          for (let y = 0; y < rows.length; y++) {
+            for (let x = 0; x < rows[y].length; x++) {
+              if (rows[y].charAt(x) === ' ') continue;
+              const color = this.charToColor(rows[y].charAt(x));
+              this.tiles.push(new GameTile(this, color, true, x, topPad + y));
+            }
+            lowestY = y + 1;
+          }
+        }
+        this.boardOffsetPosition = tileSize * boardHeight;
+        break;
     }
   }
 
@@ -118,12 +133,17 @@ export class GameBoard {
     return this.popAnimations.length > 0;
   }
   get lowestVisibleRow() {
-    for (let y = this.topMostRow; y < 10000; y++) {
-      if (this.boardOffsetPosition - y * tileSize <= 0) {
-        return y - 1;
-      }
+    switch (this.gameMode) {
+      case 'endless':
+        for (let y = this.topMostRow; y < 10000; y++) {
+          if (this.boardOffsetPosition - y * tileSize <= 0) {
+            return y - 1;
+          }
+        }
+        return 10000;
+      case 'puzzle':
+        return Math.max(...this.tiles.map((t) => t.y)) + 1;
     }
-    return 10000;
   }
 
   draw(context: CanvasRenderingContext2D) {
@@ -312,13 +332,13 @@ export class GameBoard {
 
   tick() {
     this.tickCount++;
-    if (!this.boardPaused) {
+    if (!this.boardPaused && this.gameMode === 'endless') {
       if (this.tickCount % (60 - this.speed) === 0) {
         this.boardOffsetPosition += 1;
       }
     }
 
-    if (this.tickCount % 10 === 0) {
+    if (this.gameMode === 'endless') {
       const currentLowestY = this.lowestVisibleRow;
       for (let y = this.topMostRow; y < currentLowestY; y++) {
         if (this.isEmpty(y)) {
@@ -562,7 +582,15 @@ export class GameBoard {
             }
           }
           droppingPiece.bottomY += 1;
-          if (this.getTile(droppingPiece.x, droppingPiece.bottomY + 1) !== undefined) {
+          console.log(
+            droppingPiece.bottomY + 1 > this.lowestVisibleRow,
+            droppingPiece.bottomY + 1,
+            this.lowestVisibleRow
+          );
+          if (
+            this.getTile(droppingPiece.x, droppingPiece.bottomY + 1) ||
+            droppingPiece.bottomY + 1 >= this.lowestVisibleRow
+          ) {
             droppingPiece.bouncingTiles = [];
 
             for (let y = this.topMostRow + 1; y <= droppingPiece.bottomY; y++) {
@@ -581,11 +609,12 @@ export class GameBoard {
       }
     }
 
-    for (let y = this.topMostRow; y < this.lowestVisibleRow; y++) {
+    const lowestRow = this.lowestVisibleRow;
+    for (let y = this.topMostRow; y < lowestRow; y++) {
       for (let x = 0; x < boardWidth; x++) {
         const tile = this.getTile(x, y);
         if (tile && tile.swappable) {
-          if (!this.getTile(tile.x, tile.y + 1)) {
+          if (lowestRow > tile.y + 1 && !this.getTile(tile.x, tile.y + 1)) {
             tile.setSwappable(false);
             const fellBecauseOfPop = this.comboTrackers.find((a) => a.x === tile.x && tile.y < a.aboveY);
 
@@ -703,7 +732,7 @@ export class GameBoard {
   private tileIsFloating(tile: GameTile) {
     return (
       this.droppingColumns.find((a) => a.x === tile.x && a.dropBouncePhase === 'not-started') ||
-      !this.getTile(tile.x, tile.y + 1)
+      (!this.getTile(tile.x, tile.y + 1) && tile.y > this.lowestVisibleRow)
     );
   }
 

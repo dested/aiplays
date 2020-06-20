@@ -177,6 +177,7 @@ export class GameCanvas extends React.Component<Props, State> {
     keyboardJS.bind(
       'shift',
       () => {
+        if (GameInstance.mainInstance.board.gameMode !== 'endless') return;
         if (shiftDown) {
           return;
         }

@@ -52,7 +52,7 @@ ytytyt
 `,
     };
     // seed('a');
-    gameLogic.board = new GameBoard(/*maps.slide*/);
+    gameLogic.board = new GameBoard('puzzle', maps.sevenCombo);
     gameLogic.board.tick();
     setInterval(() => {
       gameLogic.board.tick();

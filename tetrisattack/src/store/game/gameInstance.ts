@@ -12,11 +12,9 @@ export const AnimationConstants = {
   matchBlinkTicks: 44,
   matchSolidTicks: 20,
   matchPopTicksEach: 9,
-  /*
-  matchBlinkTicks: 4,
+  /*matchBlinkTicks: 4,
   matchSolidTicks: 4,
-  matchPopTicksEach: 3,
-*/
+  matchPopTicksEach: 3,*/
 
   cursorFlex: 32,
 };
@@ -36,11 +34,23 @@ export class GameInstance implements IGameInstance {
     return {x: 0, y: 0};
   }
 
+  getTiles(x: number, y: number): [GameTile?, GameTile?] {
+    return [undefined, undefined];
+  }
+
   moveDown() {
     if (this.board.cursor.y >= this.board.lowestVisibleRow - 1) {
       return false;
     }
     this.board.cursor.y++;
+    return true;
+  }
+
+  moveLeft() {
+    if (this.board.cursor.x <= 0) {
+      return false;
+    }
+    this.board.cursor.x--;
     return true;
   }
 
@@ -53,14 +63,6 @@ export class GameInstance implements IGameInstance {
     return true;
   }
 
-  moveLeft() {
-    if (this.board.cursor.x <= 0) {
-      return false;
-    }
-    this.board.cursor.x--;
-    return true;
-  }
-
   moveUp() {
     if (this.board.cursor.y < this.board.topMostRow - 1) {
       return false;
@@ -70,16 +72,12 @@ export class GameInstance implements IGameInstance {
   }
 
   reset() {
-    this.board = new GameBoard();
-  }
-
-  tick() {}
-
-  getTiles(x: number, y: number): [GameTile?, GameTile?] {
-    return [undefined, undefined];
+    this.board = new GameBoard('endless');
   }
 
   swap(): boolean {
     return this.board.swap();
   }
+
+  tick() {}
 }
