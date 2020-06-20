@@ -50,9 +50,22 @@ rg grg
 grtrgr
 ytytyt
 `,
+      puzzle: {
+        4: {
+          6: `gbt
+pry
+yyp
+prt
+pggrb
+brbbg
+ttgrg
+ttprp
+ggbbg`,
+        },
+      },
     };
     // seed('a');
-    gameLogic.board = new GameBoard('puzzle', maps.sevenCombo);
+    gameLogic.board = new GameBoard('puzzle', maps.puzzle[4][6]);
     gameLogic.board.tick();
     setInterval(() => {
       gameLogic.board.tick();
